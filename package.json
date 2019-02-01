@@ -1,0 +1,32 @@
+{
+  "name": "esi-processor",
+  "version": "1.0.0",
+  "description": "A processor for processing ESI tags in html documents",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "jest",
+    "tsc": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/johandavidson/esi-processor.git"
+  },
+  "keywords": [
+    "esi"
+  ],
+  "author": "Johan Davidsson <johan.davidsson@trewit.se>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/johandavidson/esi-processor/issues"
+  },
+  "homepage": "https://github.com/johandavidson/esi-processor#readme",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/jest": "^23.3.13",
+    "@types/node": "^10.12.21",
+    "@typescript-eslint/parser": "^1.1.1",
+    "jest": "^24.0.0",
+    "ts-jest": "^23.10.5",
+    "typescript": "^3.3.1"
+  }
+}

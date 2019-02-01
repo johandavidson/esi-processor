@@ -1,0 +1,18 @@
+{
+    "compilerOptions": {
+        "target": "es6",
+        "module": "es2015",
+        "outDir": "dist",
+        "sourceMap": false
+    },
+    "files": [
+        "./node_modules/@types/jest/index.d.ts",
+        "./node_modules/@types/node/index.d.ts"
+    ],
+    "include": [
+        "src/**/*.ts"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
+}
