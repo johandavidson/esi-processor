@@ -2,10 +2,10 @@
   "name": "esi-processor",
   "version": "1.0.0",
   "description": "A processor for processing ESI tags in html documents",
-  "main": "dist/index.js",
+  "main": "dist/app.js",
   "scripts": {
     "test": "jest",
-    "tsc": "tsc"
+    "tsc": "tsc --declarations"
   },
   "repository": {
     "type": "git",
@@ -20,13 +20,22 @@
     "url": "https://github.com/johandavidson/esi-processor/issues"
   },
   "homepage": "https://github.com/johandavidson/esi-processor#readme",
-  "dependencies": {},
+  "dependencies": {
+    "domutils": "^1.7.0",
+    "htmlparser2": "^3.10.1",
+    "node-html-parser": "^1.1.12",
+    "request-promise-native": "^1.0.7",
+    "xml-js": "^1.6.11"
+  },
   "devDependencies": {
-    "@types/jest": "^23.3.13",
-    "@types/node": "^10.12.21",
-    "@typescript-eslint/parser": "^1.1.1",
+    "@types/htmlparser2": "^3.7.31",
+    "@types/jest": "^24.0.9",
+    "@types/node": "^11.10.4",
+    "@types/request-promise-native": "^1.0.15",
+    "@types/xml-js": "^1.0.0",
     "jest": "^24.0.0",
-    "ts-jest": "^23.10.5",
-    "typescript": "^3.3.1"
+    "nock": "^10.0.6",
+    "ts-jest": "^24.0.0",
+    "typescript": "^3.3.3333"
   }
 }
