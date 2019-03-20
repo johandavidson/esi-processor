@@ -1,4 +1,4 @@
-import { EsiDocument } from './esi-document';
+import { ProcessHtml } from './processHtml';
 import nock from 'nock';
 
 describe('Test esi-document', () => {
@@ -24,14 +24,41 @@ describe('Test esi-document', () => {
 <div>
     <esi:include src="${url}" />
 </div>`;
-        const document = new EsiDocument(html);
 
         // when
-        await document.Process();
+        const result = await ProcessHtml(html);
 
         // then
-        expect(document.ToString()).toMatch('\n<div>\n    <p>included</p></div>');
+        expect(result).toMatch('\n<div>\n    <p>included</p>\n</div>');
         //expect(request).toBeCalledTimes(1);
+    });
+
+    test('recursive Esi:include', async () => {
+        // given
+        const url = 'http://www.test.se';
+        const url2 = 'http://www.test2.se';
+
+        const n = nock(url)
+            .persist()
+            .get('/')
+            .reply(200, `<esi:include src="${url2}" />`);
+        const n2 = nock(url2)
+            .persist()
+            .get('/')
+            .reply(200, '<p>included</p>');
+        const html = `
+<div>
+    <esi:include src="${url}" />
+</div>`;
+
+        // when
+        const result = await ProcessHtml(html);
+
+        // then
+        expect(nock.isActive()).toBeTruthy();
+        expect(n.isDone()).toBeTruthy();
+        expect(n2.isDone()).toBeTruthy();
+        expect(result).toMatch('\n<div>\n    <p>included</p>\n</div>');
     });
 
     test('Esi:include with alt', async () => {
@@ -39,22 +66,23 @@ describe('Test esi-document', () => {
         const url = 'http://www.test.se';
         nock(url)
             .get('/')
-            .reply(200, '<p>included</p>');
+            .reply(200, '<p>included</p>')
+            .persist();
         const fake = 'http://www.incorrecturl.se';
         nock(fake)
             .get('/')
-            .reply(404);
+            .reply(404)
+            .persist();
         const html = `
 <div>
     <esi:include src="${fake}" alt="${url}" />
 </div>`;
-        const document = new EsiDocument(html);
 
         // when
-        await document.Process();
+        const result = await ProcessHtml(html);
 
         // then
-        expect(document.ToString()).toMatch('\n<div>\n    <p>included</p></div>');
+        expect(result).toMatch('\n<div>\n    <p>included</p>\n</div>');
         //expect(request).toBeCalledTimes(2);
     });
 
@@ -66,13 +94,12 @@ describe('Test esi-document', () => {
         Whatever!
     </esi:remove>
 </div>`;
-        const document = new EsiDocument(html);
 
         // when
-        await document.Process();
+        const result = await ProcessHtml(html);
 
         // then
-        expect(document.ToString()).toMatch('\n<div>\n    \n</div>');
+        expect(result).toMatch('\n<div>\n    <!--esi:remove-->\n</div>');
     });
 
     test('Multiple Esi:remove', async () => {
@@ -86,13 +113,12 @@ describe('Test esi-document', () => {
         Whatever!
     </esi:remove>
 </div>`;
-        const document = new EsiDocument(html);
 
         // when
-        await document.Process();
+        const result = await ProcessHtml(html);
 
         // then
-        expect(document.ToString()).toMatch('\n<div>\n    \n    \n</div>');
+        expect(result).toMatch('\n<div>\n    <!--esi:remove-->\n    <!--esi:remove-->\n</div>');
     });
 
     test('Esi:comment', async () => {
@@ -103,13 +129,12 @@ describe('Test esi-document', () => {
         Whatever!
     </esi:comment>
 </div>`;
-        const document = new EsiDocument(html);
 
         // when
-        await document.Process();
+        const result = await ProcessHtml(html);
 
         // then
-        expect(document.ToString()).toMatch('\n<div>\n    \n</div>');
+        expect(result).toMatch('\n<div>\n    <!--esi:comment-->\n</div>');
     });
 
     test('Multiple Esi:comment', async () => {
@@ -123,13 +148,12 @@ describe('Test esi-document', () => {
         Whatever!
     </esi:comment>
 </div>`;
-        const document = new EsiDocument(html);
 
         // when
-        await document.Process();
+        const result = await ProcessHtml(html);
 
         // then
-        expect(document.ToString()).toMatch('\n<div>\n    \n    \n</div>');
+        expect(result).toMatch('\n<div>\n    <!--esi:comment-->\n    <!--esi:comment-->\n</div>');
     });
 
     test('Esi:rwp', async () => {
@@ -140,13 +164,12 @@ describe('Test esi-document', () => {
         <p>included</p>
     -->
 </div>`;
-        const document = new EsiDocument(html);
 
         // when
-        await document.Process();
+        const result = await ProcessHtml(html);
 
         // then
-        expect(document.ToString()).toMatch('\n<div>\n    \n        <p>included</p>\n    \n</div>');
+        expect(result).toMatch('\n<div>\n    \n        <p>included</p>\n    \n</div>');
     });
 
     test('Multiple Esi:rwp', async () => {
@@ -160,21 +183,12 @@ describe('Test esi-document', () => {
         <p>included</p>
     -->
 </div>`;
-        const document = new EsiDocument(html);
 
         // when
-        await document.Process();
+        const result = await ProcessHtml(html);
 
         // then
-        expect(document.ToString()).toMatch(`
-<div>
-    
-        <p>included</p>
-    
-    
-        <p>included</p>
-    
-</div>`);
+        expect(result).toMatch('\n<div>\n    \n        <p>included</p>\n    \n    \n        <p>included</p>\n    \n</div>');
     });
 
     test('Esi:choose', async () => {
@@ -187,13 +201,12 @@ describe('Test esi-document', () => {
         </esi:when>
     </esi:choose>
 </div>`;
-        const document = new EsiDocument(html);
 
         // when
-        await document.Process();
+        const result = await ProcessHtml(html);
 
         // then
-        expect(document.ToString()).toMatch('\n<div>\n            <p>included</p>\n        \n    \n</div>');
+        expect(result).toMatch('\n<div>\n    \n            <p>included</p>\n        \n</div>');
     });
 
     test('Multiple Esi:choose', async () => {
@@ -209,12 +222,11 @@ describe('Test esi-document', () => {
         </esi:when>
     </esi:choose>
 </div>`;
-        const document = new EsiDocument(html);
 
         // when
-        await document.Process();
+        const result = await ProcessHtml(html);
 
         // then
-        expect(document.ToString()).toMatch('\n<div>\n            <p>included</p>\n        \n    \n</div>');
+        expect(result).toMatch('\n<div>\n    \n            <p>included</p>\n        \n</div>');
     });
 });

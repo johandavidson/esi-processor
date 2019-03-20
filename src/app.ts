@@ -1,3 +1,3 @@
-import { Processor } from './processor/processor';
+import { ProcessHtml } from './processor/processHtml';
 
-export const ESI = Processor;
+export const ESI = ProcessHtml;

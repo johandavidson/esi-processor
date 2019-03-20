@@ -5,7 +5,7 @@
   "main": "dist/app.js",
   "scripts": {
     "test": "jest",
-    "tsc": "tsc --declarations"
+    "tsc": "tsc"
   },
   "repository": {
     "type": "git",
