@@ -1,5 +1,5 @@
 # esi-processor
-A processor for processing ESI tags in html documents
+A processor for processing ESI tags in html documents. Currently supporting `esi:include`, `esi:remove`, `esi:comment`, `<!--esi -->` and `esi:choose`.
 
 ## Installation
 ```node
