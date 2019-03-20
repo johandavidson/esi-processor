@@ -4,8 +4,13 @@
   "description": "A processor for processing ESI tags in html documents. Currently supporting esi:include, esi:remove, esi:comment, <!--esi --> and esi:choose.",
   "main": "dist/app.js",
   "scripts": {
+    "build": "npm run tslint && npm run build-ts",
+    "build-ts": "tsc",
     "test": "jest",
-    "tsc": "tsc"
+    "tsc": "tsc",
+    "tslint": "tslint -c tslint.json -p tsconfig.json",
+    "watch": "concurrently -k -p \"[{name}]\" -n \"TypeScript\" -c \"yellow.bold\" \"npm run watch-ts\"",
+    "watch-ts": "tsc -w"
   },
   "repository": {
     "type": "git",
@@ -36,9 +41,12 @@
     "@types/node": "^11.10.4",
     "@types/request-promise-native": "^1.0.15",
     "@types/xml-js": "^1.0.0",
+    "concurrently": "^4.1.0",
     "jest": "^24.0.0",
     "nock": "^10.0.6",
+    "nodemon": "^1.18.10",
     "ts-jest": "^24.0.0",
+    "tslint": "^5.14.0",
     "typescript": "^3.3.3333"
   }
 }

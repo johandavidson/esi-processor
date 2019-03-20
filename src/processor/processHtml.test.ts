@@ -3,7 +3,7 @@ import nock from 'nock';
 
 describe('Test esi-document', () => {
 
-    afterEach(()=> {
+    afterEach(() => {
         jest.restoreAllMocks();
         jest.resetAllMocks();
         jest.resetModules();
@@ -12,7 +12,7 @@ describe('Test esi-document', () => {
 
     afterAll(() => {
         nock.restore();
-    })
+    });
 
     test('Esi:include', async () => {
         // given
@@ -30,7 +30,7 @@ describe('Test esi-document', () => {
 
         // then
         expect(result).toMatch('\n<div>\n    <p>included</p>\n</div>');
-        //expect(request).toBeCalledTimes(1);
+        // expect(request).toBeCalledTimes(1);
     });
 
     test('recursive Esi:include', async () => {
@@ -83,7 +83,7 @@ describe('Test esi-document', () => {
 
         // then
         expect(result).toMatch('\n<div>\n    <p>included</p>\n</div>');
-        //expect(request).toBeCalledTimes(2);
+        // expect(request).toBeCalledTimes(2);
     });
 
     test('Esi:remove', async () => {

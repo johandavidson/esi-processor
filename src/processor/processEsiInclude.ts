@@ -1,8 +1,8 @@
-import { DomElement } from "domhandler";
-import { EsiProcessorOptions } from "../common/types";
-import request = require("request-promise-native");
-import { Process } from "./process";
-import { ParseHtml } from "./parseHtml";
+import { DomElement } from 'domhandler';
+import { EsiProcessorOptions } from '../common/types';
+import request = require('request-promise-native');
+import { Process } from './process';
+import { ParseHtml } from './parseHtml';
 
 export const ProcessEsiInclude = async (esiElement: DomElement, options?: EsiProcessorOptions): Promise<DomElement[]> => {
     let content = await _processUrl(esiElement.attribs.src, options);
@@ -18,15 +18,15 @@ export const ProcessEsiInclude = async (esiElement: DomElement, options?: EsiPro
                 throw new Error('Couldn\'t get requested url.');
             }
         }
-    };
-    
+    }
+
     if (content && content.length > 0) {
         return content;
     }
     else if (esiElement.attribs && esiElement.attribs.onerror && esiElement.attribs.onerror.toLowerCase() === 'continue') {
         return [{ type: 'comment', data: 'esi:include' }];
     }
-}
+};
 
 const _processUrl = async (url: string, options?: EsiProcessorOptions): Promise<DomElement[]> => {
     if (!url || url === '') {
@@ -44,4 +44,4 @@ const _processUrl = async (url: string, options?: EsiProcessorOptions): Promise<
         console.error('Esi-document:ProcessUrl: ' + e, 'Url:' + url);
         return undefined;
     }
-}
+};

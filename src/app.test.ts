@@ -22,7 +22,7 @@ describe('Test app', () => {
         const testurl = 'http://testinclude.com';
         const alttesturl = 'http://alttestinclude.com';
         const testqueryurl = 'http://testquerystring.com';
-        const queryparam = '$(QUERY_STRING{query})'
+        const queryparam = '$(QUERY_STRING{query})';
 
         nock(testurl)
           .get('/')
@@ -41,19 +41,19 @@ describe('Test app', () => {
           const html = `
 <esi:include src="${testurl}" alt="${alttesturl}" onerror="continue" />
 <esi:include src="${testqueryurl}?query=${queryparam}"/>
-<esi:choose> 
-  <esi:when test="1==0"> 
-    <esi:include src="${testurl}"/> 
-  </esi:when> 
+<esi:choose>
+  <esi:when test="1==0">
+    <esi:include src="${testurl}"/>
+  </esi:when>
   <esi:when test="0==1">
     <esi:include src="${testurl}"/>
-  </esi:when> 
-  <esi:otherwise> 
-    <esi:include src="${testurl}"/> 
+  </esi:when>
+  <esi:otherwise>
+    <esi:include src="${testurl}"/>
   </esi:otherwise>
 </esi:choose>
 <esi:comment text="the following animation will have a 24 hr TTL." />
-<esi:remove> 
+<esi:remove>
   <a href="http://www.example.com">www.example.com</a>
 </esi:remove>
 <!--esi
