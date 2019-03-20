@@ -32,6 +32,9 @@ const _processUrl = async (url: string, options?: EsiProcessorOptions): Promise<
     if (!url || url === '') {
         return undefined;
     }
+    if (options && options.BaseUrl && url.startsWith('/')) {
+        url = options.BaseUrl.toString() + url;
+    }
     try {
         const html = await request(url);
         const doc = await ParseHtml(html);

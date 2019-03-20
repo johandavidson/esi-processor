@@ -22,6 +22,7 @@ const _parseDom = (dom: DomElement[]): string => {
 
 
 interface EsiProcessorOptions {
+    BaseUrl?: URL;
     IgnoreEsiChooseTags?: boolean;
     XmlMode?: boolean;
     Verbose?: boolean;
