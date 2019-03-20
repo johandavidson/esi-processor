@@ -1,6 +1,6 @@
 import { DomElement } from 'domhandler';
 import { EsiProcessorOptions } from '../common/types';
-import request = require('request-promise-native');
+import request = require('request');
 import { Process } from './process';
 import { ParseHtml } from './parseHtml';
 
@@ -36,7 +36,7 @@ const _processUrl = async (url: string, options?: EsiProcessorOptions): Promise<
         url = options.BaseUrl.toString() + url;
     }
     try {
-        const html = await request(url);
+        const html = await _request(url);
         const doc = await ParseHtml(html);
         return await Process(options, ...doc);
     }
@@ -44,4 +44,15 @@ const _processUrl = async (url: string, options?: EsiProcessorOptions): Promise<
         console.error('Esi-document:ProcessUrl: ' + e, 'Url:' + url);
         return undefined;
     }
+};
+
+const _request = async (url: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        request(url, (error, response, body) => {
+            if (error || response.statusCode > 299) {
+                return reject(error || response.statusMessage || response.statusCode);
+            }
+            return resolve(body);
+        });
+    });
 };
