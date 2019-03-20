@@ -1,6 +1,6 @@
 import { DomElement } from "domhandler";
-import { EsiProcessorOptions } from "./processHtml";
 import { Process } from "./process";
+import { EsiProcessorOptions } from "../common/types";
 
 export const ProcessEsiChoose = async (chooseElement: DomElement, options?: EsiProcessorOptions): Promise<DomElement[]> => {
     if (!(options && options.IgnoreEsiChooseTags)) {

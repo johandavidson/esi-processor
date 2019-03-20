@@ -1,11 +1,11 @@
 import { DomElement } from "domhandler";
-import { EsiProcessorOptions } from "./processHtml";
 import { ProcessEsiRemove } from "./processEsiRemove";
 import { ProcessOther } from "./processOther";
 import { ProcessEsiRenderWithoutProcessing } from "./processEsiRemoveWithoutProcessing";
 import { ProcessEsiChoose } from "./processEsiChoose";
 import { ProcessEsiInclude } from "./processEsiInclude";
 import { ProcessEsiComment } from "./processEsiComment";
+import { EsiProcessorOptions } from "../common/types";
 
 export const Process = async (options?: EsiProcessorOptions, ...elements: DomElement[]): Promise<DomElement[]> => {
     const returnvalue: DomElement[] = [];

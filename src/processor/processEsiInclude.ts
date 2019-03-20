@@ -1,5 +1,5 @@
 import { DomElement } from "domhandler";
-import { EsiProcessorOptions } from "./processHtml";
+import { EsiProcessorOptions } from "../common/types";
 import request = require("request-promise-native");
 import { Process } from "./process";
 import { ParseHtml } from "./parseHtml";

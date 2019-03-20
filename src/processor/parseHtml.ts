@@ -1,6 +1,6 @@
 import { DomElement } from "domhandler";
 import htmlparser = require('htmlparser2');
-import { EsiProcessorOptions } from "./processHtml";
+import { EsiProcessorOptions } from "../common/types";
 
 export const ParseHtml = async (html: string, options?: EsiProcessorOptions): Promise<DomElement[]> => {
     return new Promise((resolve, reject) => {

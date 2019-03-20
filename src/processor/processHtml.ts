@@ -2,6 +2,7 @@ import { DomElement } from 'domhandler';
 import htmlparser from 'htmlparser2';
 import { Process } from './process';
 import { ParseHtml } from './parseHtml';
+import { EsiProcessorOptions } from '../common/types';
 
 const ProcessHtml = async (html: string, options?: EsiProcessorOptions): Promise<string> => {
     // we need to find all <!--esi --> tags and replace them otherwise they are dropped in the parsing
@@ -20,12 +21,4 @@ const _parseDom = (dom: DomElement[]): string => {
     return htmlparser.DomUtils.getOuterHTML(dom);
 }
 
-
-interface EsiProcessorOptions {
-    BaseUrl?: URL;
-    IgnoreEsiChooseTags?: boolean;
-    XmlMode?: boolean;
-    Verbose?: boolean;
-}
-
-export { ProcessHtml, EsiProcessorOptions };
+export { ProcessHtml };
