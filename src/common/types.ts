@@ -1,5 +1,5 @@
 export interface EsiProcessorOptions {
-    BaseUrl?: URL;
+    BaseUrl?: string;
     IgnoreEsiChooseTags?: boolean;
     XmlMode?: boolean;
     Verbose?: boolean;

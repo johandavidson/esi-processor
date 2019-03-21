@@ -9,8 +9,7 @@ export const ProcessEsiChoose = async (chooseElement: DomElement, options?: EsiP
             chooseElement.children.find((element) => (_processEsiWhenTag(element)) !== undefined) ||
             chooseElement.children.find((element) => element.name === 'esi:otherwise');
         if (contentElement) {
-            await Process(options, req, ...contentElement.children);
-            return contentElement.children;
+            return await Process(options, req, ...contentElement.children);
         }
     }
     else {

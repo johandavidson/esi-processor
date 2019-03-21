@@ -41,14 +41,14 @@ describe('Test esi-document', () => {
         const n = nock(url)
             .persist()
             .get('/')
-            .reply(200, `<esi:include src="${url2}" />`);
+            .reply(200, `<esi:include onerror='continue' src="${url2}"></esi:include>`);
         const n2 = nock(url2)
             .persist()
             .get('/')
             .reply(200, '<p>included</p>');
         const html = `
 <div>
-    <esi:include src="${url}" />
+    <esi:include onerror='continue' src="${url}"></esi:include>
 </div>`;
 
         // when
