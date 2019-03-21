@@ -31,6 +31,6 @@ const _process = async (element: DomElement, options?: EsiProcessorOptions): Pro
         case 'esi:choose':
             return await ProcessEsiChoose(element, options);
         default:
-            return await ProcessOther(element);
+            return await ProcessOther(element, options);
     }
 };

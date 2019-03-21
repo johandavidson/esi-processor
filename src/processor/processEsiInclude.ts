@@ -26,6 +26,7 @@ export const ProcessEsiInclude = async (esiElement: DomElement, options?: EsiPro
     else if (esiElement.attribs && esiElement.attribs.onerror && esiElement.attribs.onerror.toLowerCase() === 'continue') {
         return [{ type: 'comment', data: 'esi:include' }];
     }
+    return [{ type: 'comment', data: 'esi:include' }];
 };
 
 const _processUrl = async (url: string, options?: EsiProcessorOptions): Promise<DomElement[]> => {
@@ -33,7 +34,7 @@ const _processUrl = async (url: string, options?: EsiProcessorOptions): Promise<
         return undefined;
     }
     if (options && options.BaseUrl && url.startsWith('/')) {
-        url = options.BaseUrl.toString() + url;
+        url = options.BaseUrl.toString() + url.substring(1);
     }
     try {
         const html = await _request(url);
