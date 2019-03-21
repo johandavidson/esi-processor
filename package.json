@@ -1,6 +1,6 @@
 {
   "name": "esi-processor",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A processor for processing ESI tags in html documents. Currently supporting esi:include, esi:remove, esi:comment, <!--esi -->, esi:choose and esi:vars.",
   "main": "dist/app.js",
   "scripts": {
