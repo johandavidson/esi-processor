@@ -3,8 +3,9 @@ import { EsiProcessorOptions } from '../common/types';
 import request = require('request');
 import { Process } from './process';
 import { ParseHtml } from './parseHtml';
+import { Request } from 'express';
 
-export const ProcessEsiInclude = async (esiElement: DomElement, options?: EsiProcessorOptions): Promise<DomElement[]> => {
+export const ProcessEsiInclude = async (esiElement: DomElement, options?: EsiProcessorOptions, req?: Request): Promise<DomElement[]> => {
     let content = await _processUrl(esiElement.attribs.src, options);
     if (!content && esiElement.attribs.alt) {
         try {
@@ -29,7 +30,7 @@ export const ProcessEsiInclude = async (esiElement: DomElement, options?: EsiPro
     return [{ type: 'comment', data: 'esi:include' }];
 };
 
-const _processUrl = async (url: string, options?: EsiProcessorOptions): Promise<DomElement[]> => {
+const _processUrl = async (url: string, options?: EsiProcessorOptions, req?: Request): Promise<DomElement[]> => {
     if (!url || url === '') {
         return undefined;
     }
@@ -39,7 +40,7 @@ const _processUrl = async (url: string, options?: EsiProcessorOptions): Promise<
     try {
         const html = await _request(url);
         const doc = await ParseHtml(html);
-        return await Process(options, ...doc);
+        return await Process(options, req, ...doc);
     }
     catch (e) {
         console.error('Esi-document:ProcessUrl: ' + e, 'Url:' + url);

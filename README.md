@@ -1,7 +1,7 @@
 # esi-processor
 ![node](https://img.shields.io/node/v/esi-processor.svg?style=popout-square) ![npm](https://img.shields.io/npm/v/esi-processor.svg?style=popout-square)
 
-A processor for processing ESI tags in html documents. Currently supporting `esi:include`, `esi:remove`, `esi:comment`, `<!--esi -->` and `esi:choose`.
+A processor for processing ESI tags in html documents. Currently supporting `esi:include`, `esi:remove`, `esi:comment`, `<!--esi -->`, `esi:choose` and `esi:vars`.
 
 ## Installation
 ```node

@@ -3,13 +3,14 @@ import htmlparser from 'htmlparser2';
 import { Process } from './process';
 import { ParseHtml } from './parseHtml';
 import { EsiProcessorOptions } from '../common/types';
+import { Request } from 'express';
 
-const ProcessHtml = async (html: string, options?: EsiProcessorOptions): Promise<string> => {
+const ProcessHtml = async (html: string, options?: EsiProcessorOptions, req?: Request): Promise<string> => {
     // we need to find all <!--esi --> tags and replace them otherwise they are dropped in the parsing
     html = html.replace(/<!--esi(?:(?!-->)[\s\S])*?-->/gm, (tag) => tag.replace(/<!--esi/, '<esi:rwp>').replace(/-->/, '</esi:rwp>'));
     try {
         let _dom = await ParseHtml(html, options);
-        _dom = await Process(options, ..._dom);
+        _dom = await Process(options, req, ..._dom);
         return _parseDom(_dom);
     }
     catch (e) {
