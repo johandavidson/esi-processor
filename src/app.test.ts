@@ -1,10 +1,24 @@
 import { ESI } from './app';
 import nock = require('nock');
 import httpMocks = require('node-mocks-http');
+import request = require('request');
+
+let requestSpy;
 
 describe('Test app', () => {
 
+    beforeEach(() => {
+        requestSpy = jest.spyOn(request, 'get') as jest.Mock;
+    });
+
+    afterEach(() => {
+        jest.restoreAllMocks();
+        jest.resetAllMocks();
+        jest.resetModules();
+    });
+
     test('Test document without esi tags', async () => {
+
         // given
         const html = `
 <div>
@@ -27,31 +41,31 @@ describe('Test app', () => {
         const resolvedQueryparam = 'testparam';
 
         const req = httpMocks.createRequest({
-          method: 'GET',
-          cookies: { name: 'testname', type: 'testtype'},
-          headers: {
-            Cookie: 'Test=test; name=test; type=gif;'
-          },
-          query: {
-            query: resolvedQueryparam
-          }
+            method: 'GET',
+            cookies: { name: 'testname', type: 'testtype' },
+            headers: {
+                Cookie: 'Test=test; name=test; type=gif;'
+            },
+            query: {
+                query: resolvedQueryparam
+            }
         });
 
         nock(testurl)
-          .get('/')
-          .times(2)
-          .reply(200, '<p>included</p><p>also included</p>');
+            .get('/')
+            .times(2)
+            .reply(200, '<p>included</p><p>also included</p>');
 
         nock(alttesturl)
-          .get('/')
-          .reply(200, '<p>alt included</p>');
+            .get('/')
+            .reply(200, '<p>alt included</p>');
 
         nock(testqueryurl)
-          .get('/')
-          .query({ query: resolvedQueryparam})
-          .reply(200, '<p>query included</p>');
+            .get('/')
+            .query({ query: resolvedQueryparam })
+            .reply(200, '<p>query included</p>');
 
-          const html = `
+        const html = `
 <esi:include src="${testurl}" alt="${alttesturl}" onerror="continue" />
 <esi:include src="${testqueryurl}?query=${queryparam}"/>
 <esi:choose>
@@ -77,9 +91,22 @@ describe('Test app', () => {
 </esi:vars>`;
 
         // when
-        const processed = await ESI(html, { IgnoreEsiChooseTags: true, XmlMode: true }, req);
+        const processed = await ESI(html, {
+            IgnoreEsiChooseTags: true,
+            XmlMode: true,
+            Headers: { 'X-Custom-Header': 'x-custom-value' }
+        }, req);
 
         // then
         expect(processed).toEqual('\n<p>included</p><p>also included</p>\n<p>query included</p>\n<!--esi:choose-->\n<!--esi:comment-->\n<!--esi:remove-->\n\n<p>Hello, test!</p>\n\n\n  <img src="http://www.example.com/gif/hello.gif">\n');
+        expect(requestSpy).toBeCalledTimes(2);
+        expect(requestSpy).toHaveBeenNthCalledWith(1, {
+            "headers": { "X-Custom-Header": "x-custom-value" },
+            "url": "http://testinclude.com"
+        }, expect.any(Function));
+        expect(requestSpy).toHaveBeenNthCalledWith(2, {
+            "headers": { "X-Custom-Header": "x-custom-value" },
+            "url": "http://testquerystring.com?query=testparam"
+        }, expect.any(Function));
     });
 });
