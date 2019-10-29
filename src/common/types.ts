@@ -7,6 +7,5 @@ export interface EsiProcessorOptions {
 }
 
 export interface HttpRequestOptions {
-    url: string;
     headers?: object;
 }

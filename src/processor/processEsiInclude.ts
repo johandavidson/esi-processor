@@ -1,5 +1,5 @@
-import request = require('request');
-import urljoin = require('url-join');
+import axios from 'axios';
+import urljoin from 'url-join';
 import { DomElement } from 'domhandler';
 import { EsiProcessorOptions, HttpRequestOptions } from '../common/types';
 import { Process } from './process';
@@ -37,15 +37,12 @@ const _processUrl = async (url: string, options?: EsiProcessorOptions, req?: Req
     if (options && options.BaseUrl && !isValidUrlRegEx.test(url)) {
         url = urljoin(options.BaseUrl, url);
     }
-    const requestOptions = {
-        url: url
-    };
+    const requestOptions = {};
     if (options && options.Headers) {
         requestOptions['headers'] = options.Headers;
     }
-
     try {
-        const html = await _request(requestOptions);
+        const html = await _request(url, requestOptions);
         const doc = await ParseHtml(html);
         return await Process(options, req, ...doc);
     } catch (e) {
@@ -54,13 +51,14 @@ const _processUrl = async (url: string, options?: EsiProcessorOptions, req?: Req
     }
 };
 
-const _request = async (options: HttpRequestOptions): Promise<string> => {
+const _request = async (url: string, options: HttpRequestOptions): Promise<string> => {
     return new Promise((resolve, reject) => {
-        request.get(options, (error, response, body) => {
-            if (error || response.statusCode > 299) {
-                return reject(error || response.statusMessage || response.statusCode);
+        axios.get(url, options).then(response => {
+            resolve(response.data);
+        }).catch(error => {
+            if (error.response.status > 299) {
+                reject(error || error.response.statusText || error.response.status);
             }
-            return resolve(body);
         });
     });
 };

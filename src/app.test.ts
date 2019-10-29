@@ -1,14 +1,14 @@
 import { ESI } from './app';
 import nock = require('nock');
 import httpMocks = require('node-mocks-http');
-import request = require('request');
+import axios from 'axios';
 
 let requestSpy;
 
 describe('Test app', () => {
 
     beforeEach(() => {
-        requestSpy = jest.spyOn(request, 'get') as jest.Mock;
+        requestSpy = jest.spyOn(axios, 'get') as jest.Mock;
     });
 
     afterEach(() => {
@@ -100,13 +100,11 @@ describe('Test app', () => {
         // then
         expect(processed).toEqual('\n<p>included</p><p>also included</p>\n<p>query included</p>\n<!--esi:choose-->\n<!--esi:comment-->\n<!--esi:remove-->\n\n<p>Hello, test!</p>\n\n\n  <img src="http://www.example.com/gif/hello.gif">\n');
         expect(requestSpy).toBeCalledTimes(2);
-        expect(requestSpy).toHaveBeenNthCalledWith(1, {
-            "headers": { "X-Custom-Header": "x-custom-value" },
-            "url": "http://testinclude.com"
-        }, expect.any(Function));
-        expect(requestSpy).toHaveBeenNthCalledWith(2, {
-            "headers": { "X-Custom-Header": "x-custom-value" },
-            "url": "http://testquerystring.com?query=testparam"
-        }, expect.any(Function));
+        expect(requestSpy).toHaveBeenNthCalledWith(1, 'http://testinclude.com', {
+            'headers': { 'X-Custom-Header': 'x-custom-value' }
+        });
+        expect(requestSpy).toHaveBeenNthCalledWith(2, 'http://testquerystring.com?query=testparam', {
+            'headers': { 'X-Custom-Header': 'x-custom-value' }
+        });
     });
 });

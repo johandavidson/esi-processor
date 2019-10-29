@@ -1,13 +1,13 @@
 import { ProcessHtml } from './processHtml';
 import nock from 'nock';
-import request = require('request');
+import axios from 'axios';
 
 let requestSpy;
 
 describe('Test esi-document', () => {
 
     beforeEach(() => {
-        requestSpy = jest.spyOn(request, 'get') as jest.Mock;
+        requestSpy = jest.spyOn(axios, 'get') as jest.Mock;
     });
 
     afterEach(() => {
@@ -38,9 +38,7 @@ describe('Test esi-document', () => {
         // then
         expect(result).toMatch('\n<div>\n    <p>included</p>\n</div>');
         expect(requestSpy).toBeCalledTimes(1);
-        expect(requestSpy).toHaveBeenNthCalledWith(1, {
-            "url": "http://www.test.se"
-        }, expect.any(Function));
+        expect(requestSpy).toHaveBeenNthCalledWith(1, 'http://www.test.se', {});
     });
 
     test('recursive Esi:include', async () => {
@@ -94,12 +92,8 @@ describe('Test esi-document', () => {
         // then
         expect(result).toMatch('\n<div>\n    <p>included</p>\n</div>');
         expect(requestSpy).toBeCalledTimes(2);
-        expect(requestSpy).toHaveBeenNthCalledWith(1, {
-            "url": "http://www.incorrecturl.se"
-        }, expect.any(Function));
-        expect(requestSpy).toHaveBeenNthCalledWith(2, {
-            "url": "http://www.test.se"
-        }, expect.any(Function));
+        expect(requestSpy).toHaveBeenNthCalledWith(1, 'http://www.incorrecturl.se', {});
+        expect(requestSpy).toHaveBeenNthCalledWith(2, 'http://www.test.se', {});
     });
 
     test('Esi:remove', async () => {
