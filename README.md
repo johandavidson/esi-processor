@@ -22,6 +22,9 @@ You can use the following options:
 ### BaseUrl
 Add a base url to be used on relative esi:includes
 
+### Headers
+Add custom HTTP headers for remote esi:includes e.g. ```{ 'X-Custom-Header': 'x-custom-value' }```
+
 ### IgnoreEsiChooseTags
 Ignore the esi:choose tags, only returning a comment
 
