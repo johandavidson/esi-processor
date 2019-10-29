@@ -24,15 +24,18 @@ const _parseAttribs = (items: Record<string, string>, req?: Request): Record<str
 
 const resolveVar = (_var: string, req?: Request): string => {
     try {
-        _var = _var.replace(/[$()]/gm, '');
         if (!req) {
             return '';
         }
+        _var = _var.replace(/[$()]/gm, '');
+        const matches = esivarskeyregex.exec(_var);
+        if (!matches) {
+            return '';
+        }
+        const varkey = matches[0].replace(/[{}]/gm, '');
         const varname = _var.replace(esivarskeyregex, '');
-        const varkey = esivarskeyregex.exec(_var)[0].replace(/[{}]/gm, '');
         return ESIVARIABLES[varname](req, varkey || undefined);
-    }
-    catch (e) {
+    } catch (e) {
         console.error(e);
         return '';
     }
