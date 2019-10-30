@@ -1,0 +1,14 @@
+.idea
+*.editorconfig
+*.eslintrc.json
+*.eslintignore
+*.iml
+*.gitattributes
+.scannerwork
+sonar-project.properties
+coverage
+jenkins
+src
+*.config.js
+tslint.json
+tsconfig.json
