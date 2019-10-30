@@ -1,10 +1,11 @@
-import request = require('request');
-import urljoin = require('url-join');
+import axios from 'axios';
+import urljoin from 'url-join';
 import { DomElement } from 'domhandler';
-import { EsiProcessorOptions } from '../common/types';
+import { EsiProcessorOptions, HttpRequestOptions } from '../common/types';
 import { Process } from './process';
 import { ParseHtml } from './parseHtml';
 import { Request } from 'express';
+
 const isValidUrlRegEx = /^https?:\/\/\w+(\.[-\w]+)*(:[0-9]+)?\/?(\/[.-\w]*)*(\?[.-\w]*\=)*$/;
 
 export const ProcessEsiInclude = async (esiElement: DomElement, options?: EsiProcessorOptions, req?: Request): Promise<DomElement[]> => {
@@ -12,15 +13,12 @@ export const ProcessEsiInclude = async (esiElement: DomElement, options?: EsiPro
     if (!content && esiElement.attribs.alt) {
         try {
             content = await _processUrl(esiElement.attribs.alt, options);
-        }
-        catch {
+        } catch {
             if (esiElement.attribs && !esiElement.attribs.onerror && esiElement.attribs.src) {
                 throw new Error('Couldn\'t get requested url: ' + esiElement.attribs.src);
-            }
-            else if (esiElement.attribs && !esiElement.attribs.onerror) {
+            } else if (esiElement.attribs && !esiElement.attribs.onerror) {
                 throw new Error('Couldn\'t get requested url.');
-            }
-            else if (esiElement.attribs && esiElement.attribs.onerror && esiElement.attribs.onerror.toLowerCase() === 'continue') {
+            } else if (esiElement.attribs && esiElement.attribs.onerror && esiElement.attribs.onerror.toLowerCase() === 'continue') {
                 return [{ type: 'comment', data: 'esi:include continued on error' }];
             }
         }
@@ -39,24 +37,28 @@ const _processUrl = async (url: string, options?: EsiProcessorOptions, req?: Req
     if (options && options.BaseUrl && !isValidUrlRegEx.test(url)) {
         url = urljoin(options.BaseUrl, url);
     }
+    const requestOptions = {};
+    if (options && options.Headers) {
+        requestOptions['headers'] = options.Headers;
+    }
     try {
-        const html = await _request(url);
+        const html = await _request(url, requestOptions);
         const doc = await ParseHtml(html);
         return await Process(options, req, ...doc);
-    }
-    catch (e) {
+    } catch (e) {
         console.error('Esi-document:ProcessUrl: ' + e, 'Url:' + url);
         return undefined;
     }
 };
 
-const _request = async (url: string): Promise<string> => {
+const _request = async (url: string, options: HttpRequestOptions): Promise<string> => {
     return new Promise((resolve, reject) => {
-        request(url, (error, response, body) => {
-            if (error || response.statusCode > 299) {
-                return reject(error || response.statusMessage || response.statusCode);
+        axios.get(url, options).then(response => {
+            resolve(response.data);
+        }).catch(error => {
+            if (error.response.status > 299) {
+                reject(error || error.response.statusText || error.response.status);
             }
-            return resolve(body);
         });
     });
 };

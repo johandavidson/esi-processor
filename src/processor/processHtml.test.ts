@@ -1,7 +1,14 @@
 import { ProcessHtml } from './processHtml';
 import nock from 'nock';
+import axios from 'axios';
+
+let requestSpy;
 
 describe('Test esi-document', () => {
+
+    beforeEach(() => {
+        requestSpy = jest.spyOn(axios, 'get') as jest.Mock;
+    });
 
     afterEach(() => {
         jest.restoreAllMocks();
@@ -30,7 +37,8 @@ describe('Test esi-document', () => {
 
         // then
         expect(result).toMatch('\n<div>\n    <p>included</p>\n</div>');
-        // expect(request).toBeCalledTimes(1);
+        expect(requestSpy).toBeCalledTimes(1);
+        expect(requestSpy).toHaveBeenNthCalledWith(1, 'http://www.test.se', {});
     });
 
     test('recursive Esi:include', async () => {
@@ -83,7 +91,9 @@ describe('Test esi-document', () => {
 
         // then
         expect(result).toMatch('\n<div>\n    <p>included</p>\n</div>');
-        // expect(request).toBeCalledTimes(2);
+        expect(requestSpy).toBeCalledTimes(2);
+        expect(requestSpy).toHaveBeenNthCalledWith(1, 'http://www.incorrecturl.se', {});
+        expect(requestSpy).toHaveBeenNthCalledWith(2, 'http://www.test.se', {});
     });
 
     test('Esi:remove', async () => {
