@@ -69,6 +69,7 @@ describe('Test esi-document', () => {
         expect(result).toMatch('\n<div>\n    <p>included</p>\n</div>');
     });
 
+
     test('Esi:include with alt', async () => {
         // given
         const url = 'http://www.test.se';
@@ -239,4 +240,22 @@ describe('Test esi-document', () => {
         // then
         expect(result).toMatch('\n<div>\n    \n            <p>included</p>\n        \n</div>');
     });
+
+
+  test('Esi:include should handle HTTP errors', async () => {
+    // given
+    const url = 'http://localhost:ttt';
+
+    const html = `
+<div>
+    <esi:include src="${url}" />
+</div>`;
+
+    // when
+    const result = await ProcessHtml(html);
+
+    // then
+    expect(result).toMatch('\n<div>\n    <!--esi:include without content-->');
+    expect(requestSpy).toHaveBeenNthCalledWith(1, 'http://localhost:ttt', {});
+  });
 });

@@ -56,8 +56,8 @@ const _request = async (url: string, options: HttpRequestOptions): Promise<strin
         axios.get(url, options).then(response => {
             resolve(response.data);
         }).catch(error => {
-            if (error.response.status > 299) {
-                reject(error || error.response.statusText || error.response.status);
+            if ((error.response && error.response.status > 299) || error) {
+              reject(error || error.response.statusText || error.response.status);
             }
         });
     });
