@@ -10,6 +10,8 @@ export const ProcessEsiChoose = async (chooseElement: DomElement, options?: EsiP
             chooseElement.children.find((element) => element.name === 'esi:otherwise');
         if (contentElement) {
             return await Process(options, req, ...contentElement.children);
+        } else {
+            return [{ type: 'comment', data: 'esi:choose without match'}];
         }
     }
     else {

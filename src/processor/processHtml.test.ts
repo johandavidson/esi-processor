@@ -220,6 +220,24 @@ describe('Test esi-document', () => {
         expect(result).toMatch('\n<div>\n    \n            <p>included</p>\n        \n</div>');
     });
 
+    test('Esi:choose without any match', async () => {
+        // given
+        const html = `
+<div>
+    <esi:choose>
+        <esi:when test="1==0">
+            <p>included</p>
+        </esi:when>
+    </esi:choose>
+</div>`;
+
+        // when
+        const result = await ProcessHtml(html);
+
+        // then
+        expect(result).toMatch('\n<div>\n    <!--esi:choose without match-->\n</div>');
+    });
+
     test('Multiple Esi:choose', async () => {
         // given
         const html = `
