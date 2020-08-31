@@ -36,6 +36,7 @@ describe('Test app', () => {
         // given
         const testurl = 'http://testinclude.com';
         const alttesturl = 'http://alttestinclude.com';
+        const testjsonurl = 'http://testjsonurl.com';
         const testqueryurl = 'http://testquerystring.com';
         const queryparam = '$(QUERY_STRING{query})';
         const resolvedQueryparam = 'testparam';
@@ -56,6 +57,13 @@ describe('Test app', () => {
             .times(2)
             .reply(200, '<p>included</p><p>also included</p>');
 
+        nock(testjsonurl)
+          .defaultReplyHeaders({
+            'Content-Type': 'application/json',
+          })
+            .get('/test.json')
+            .reply(200, '{"test": true}');
+
         nock(alttesturl)
             .get('/')
             .reply(200, '<p>alt included</p>');
@@ -67,6 +75,7 @@ describe('Test app', () => {
 
         const html = `
 <esi:include src="${testurl}" alt="${alttesturl}" onerror="continue" />
+<esi:include src="${testjsonurl}/test.json"/>
 <esi:include src="${testqueryurl}?query=${queryparam}"/>
 <esi:choose>
   <esi:when test="1==0">
@@ -98,12 +107,15 @@ describe('Test app', () => {
         }, req);
 
         // then
-        expect(processed).toEqual('\n<p>included</p><p>also included</p>\n<p>query included</p>\n<!--esi:choose-->\n<!--esi:comment-->\n<!--esi:remove-->\n\n<p>Hello, test!</p>\n\n\n  <img src="http://www.example.com/gif/hello.gif">\n');
-        expect(requestSpy).toBeCalledTimes(2);
+        expect(processed).toEqual('\n<p>included</p><p>also included</p>\n{"test":true}\n<p>query included</p>\n<!--esi:choose-->\n<!--esi:comment-->\n<!--esi:remove-->\n\n<p>Hello, test!</p>\n\n\n  <img src="http://www.example.com/gif/hello.gif">\n');
+        expect(requestSpy).toBeCalledTimes(3);
         expect(requestSpy).toHaveBeenNthCalledWith(1, 'http://testinclude.com', {
             'headers': { 'X-Custom-Header': 'x-custom-value' }
         });
-        expect(requestSpy).toHaveBeenNthCalledWith(2, 'http://testquerystring.com?query=testparam', {
+        expect(requestSpy).toHaveBeenNthCalledWith(2, 'http://testjsonurl.com/test.json', {
+            'headers': { 'X-Custom-Header': 'x-custom-value' }
+        });
+        expect(requestSpy).toHaveBeenNthCalledWith(3, 'http://testquerystring.com?query=testparam', {
             'headers': { 'X-Custom-Header': 'x-custom-value' }
         });
     });
