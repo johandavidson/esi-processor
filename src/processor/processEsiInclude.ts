@@ -2,7 +2,7 @@ import axios from 'axios';
 import mime from 'mime';
 import urljoin from 'url-join';
 import { DomElement } from 'domhandler';
-import { EsiProcessorOptions, HttpRequestOptions } from '../common/types';
+import { EsiFile, EsiFileExt, EsiProcessorOptions, HttpRequestOptions } from '../common/types';
 import { Process } from './process';
 import { ParseHtml } from './parseHtml';
 import { Request } from 'express';
@@ -44,9 +44,9 @@ const _processUrl = async (url: string, options?: EsiProcessorOptions, req?: Req
         requestOptions['headers'] = options.Headers;
     }
     try {
-        const file = await _request(url, requestOptions);
+        const file: EsiFile = await _request(url, requestOptions);
         switch (mime.getExtension(file.contentType)) {
-            case 'json':
+            case EsiFileExt.JSON:
                return await Process(options, req, ...await ParseJson(file.data));
             default:
                return await Process(options, req, ...await ParseHtml(file.data));
@@ -57,12 +57,7 @@ const _processUrl = async (url: string, options?: EsiProcessorOptions, req?: Req
     }
 };
 
-export interface File {
-  data: string;
-  contentType: string;
-}
-
-const _request = async (url: string, options: HttpRequestOptions): Promise<File> => {
+const _request = async (url: string, options: HttpRequestOptions): Promise<EsiFile> => {
     return new Promise((resolve, reject) => {
         axios.get(url, options).then(response => {
           const contentType = response.headers['content-type'];
