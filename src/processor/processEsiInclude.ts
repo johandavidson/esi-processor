@@ -1,10 +1,12 @@
 import axios from 'axios';
+import mime from 'mime';
 import urljoin from 'url-join';
 import { DomElement } from 'domhandler';
-import { EsiProcessorOptions, HttpRequestOptions } from '../common/types';
+import { EsiFile, EsiFileExt, EsiProcessorOptions, HttpRequestOptions } from '../common/types';
 import { Process } from './process';
 import { ParseHtml } from './parseHtml';
 import { Request } from 'express';
+import { ParseJson } from './parseJson';
 
 const isValidUrlRegEx = /^https?:\/\/\w+(\.[-\w]+)*(:[0-9]+)?\/?(\/[.-\w]*)*(\?[.-\w]*\=)*$/;
 
@@ -42,19 +44,24 @@ const _processUrl = async (url: string, options?: EsiProcessorOptions, req?: Req
         requestOptions['headers'] = options.Headers;
     }
     try {
-        const html = await _request(url, requestOptions);
-        const doc = await ParseHtml(html);
-        return await Process(options, req, ...doc);
+        const file: EsiFile = await _request(url, requestOptions);
+        switch (mime.getExtension(file.contentType)) {
+            case EsiFileExt.JSON:
+               return await Process(options, req, ...await ParseJson(file.data));
+            default:
+               return await Process(options, req, ...await ParseHtml(file.data));
+        }
     } catch (e) {
         console.error('Esi-document:ProcessUrl: ' + e, 'Url:' + url);
         return undefined;
     }
 };
 
-const _request = async (url: string, options: HttpRequestOptions): Promise<string> => {
+const _request = async (url: string, options: HttpRequestOptions): Promise<EsiFile> => {
     return new Promise((resolve, reject) => {
         axios.get(url, options).then(response => {
-            resolve(response.data);
+          const contentType = response.headers['content-type'];
+            resolve({data: response.data, contentType: contentType || ''});
         }).catch(error => {
             if ((error.response && error.response.status > 299) || error) {
               reject(error || error.response.statusText || error.response.status);
