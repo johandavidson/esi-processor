@@ -28,7 +28,7 @@
   },
   "homepage": "https://github.com/johandavidson/esi-processor#readme",
   "dependencies": {
-    "axios": "^0.20.0",
+    "axios": "^0.21.1",
     "domutils": "^1.7.0",
     "htmlparser2": "^3.10.1",
     "mime": "^2.4.6",
