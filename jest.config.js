@@ -1,6 +1,6 @@
 module.exports = {
   testEnvironment: 'node',
-  collectCoverage: true,
+  collectCoverage: false,
   roots: [
     "<rootDir>/src"
   ],
