@@ -1,5 +1,5 @@
-import { DomElement } from 'domhandler';
-import htmlparser from 'htmlparser2';
+import { DomElement } from '../common/dom';
+import { getOuterHTML } from 'domutils';
 import { Process } from './process';
 import { ParseHtml } from './parseHtml';
 import { EsiProcessorOptions } from '../common/types';
@@ -14,12 +14,12 @@ const ProcessHtml = async (html: string, options?: EsiProcessorOptions, req?: Re
         return _parseDom(_dom);
     }
     catch (e) {
-        throw new Error(e);
+        throw e instanceof Error ? e : new Error(String(e));
     }
 };
 
 const _parseDom = (dom: DomElement[]): string => {
-    return htmlparser.DomUtils.getOuterHTML(dom);
+    return getOuterHTML(dom, { encodeEntities: false });
 };
 
 export { ProcessHtml };

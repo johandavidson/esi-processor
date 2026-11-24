@@ -1,5 +1,5 @@
-import { DomElement } from 'domhandler';
+import { createCommentNode, DomElement } from '../common/dom';
 
 export const ProcessEsiRemove = (element: DomElement): DomElement[] => {
-    return [{ type: 'comment', data: 'esi:remove' }];
+    return [createCommentNode('esi:remove')];
 };

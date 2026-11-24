@@ -1,0 +1,73 @@
+name: Publish to npm
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test -- --runInBand
+
+      - name: Build package
+        run: npm run build
+
+      - name: Validate package version is bumped
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PACKAGE_NAME="$(node -p "require('./package.json').name")"
+          LOCAL_VERSION="$(node -p "require('./package.json').version")"
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          REMOTE_VERSION="$(npm view "$PACKAGE_NAME" version 2>/dev/null || true)"
+
+          echo "Package: $PACKAGE_NAME"
+          echo "Tag version: $TAG_VERSION"
+          echo "Local version: $LOCAL_VERSION"
+          echo "Published version: ${REMOTE_VERSION:-<none>}"
+
+          if [ "$TAG_VERSION" != "$LOCAL_VERSION" ]; then
+            echo "Version check failed: git tag version ($TAG_VERSION) must match package.json version ($LOCAL_VERSION)."
+            exit 1
+          fi
+
+          if [ -z "$REMOTE_VERSION" ]; then
+            echo "No published version found. Proceeding with first publish."
+            exit 0
+          fi
+
+          if [ "$LOCAL_VERSION" = "$REMOTE_VERSION" ]; then
+            echo "Version check failed: package.json version must be bumped before publishing."
+            exit 1
+          fi
+
+          HIGHEST_VERSION="$(printf '%s\n%s\n' "$LOCAL_VERSION" "$REMOTE_VERSION" | sort -V | tail -n1)"
+          if [ "$HIGHEST_VERSION" != "$LOCAL_VERSION" ]; then
+            echo "Version check failed: local version ($LOCAL_VERSION) must be greater than published version ($REMOTE_VERSION)."
+            exit 1
+          fi
+
+      - name: Publish package to npm
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

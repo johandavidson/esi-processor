@@ -11,7 +11,7 @@ export interface EsiProcessorOptions {
 }
 
 export interface EsiFile {
-  data: string;
+  data: unknown;
   contentType: string;
 }
 

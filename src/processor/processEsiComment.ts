@@ -1,5 +1,5 @@
-import { DomElement } from 'domhandler';
+import { createCommentNode, DomElement } from '../common/dom';
 
 export const ProcessEsiComment = (element: DomElement): DomElement[] => {
-    return [{ type: 'comment', data: 'esi:comment' }];
+    return [createCommentNode('esi:comment')];
 };

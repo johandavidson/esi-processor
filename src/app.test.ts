@@ -119,4 +119,36 @@ describe('Test app', () => {
             'headers': { 'X-Custom-Header': 'x-custom-value' }
         });
     });
+
+    test('Vars should handle missing headers', async () => {
+        // given
+        const req = httpMocks.createRequest({
+            method: 'GET',
+            query: {}
+        });
+        const html = '<esi:vars>$(HTTP_ACCEPT_LANGUAGE{sv})$(HTTP_COOKIE{name})$(QUERY_STRING{query})</esi:vars>';
+
+        // when
+        const processed = await ESI(html, undefined, req);
+
+        // then
+        expect(processed).toEqual('false');
+    });
+
+    test('Vars should not throw on malformed cookie variable', async () => {
+        // given
+        const req = httpMocks.createRequest({
+            method: 'GET',
+            headers: {
+                Cookie: 'name=test;'
+            }
+        });
+        const html = '<esi:vars>$(HTTP_COOKIE{[})</esi:vars>';
+
+        // when
+        const processed = await ESI(html, undefined, req);
+
+        // then
+        expect(processed).toEqual('');
+    });
 });

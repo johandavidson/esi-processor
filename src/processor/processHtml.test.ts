@@ -259,6 +259,103 @@ describe('Test esi-document', () => {
         expect(result).toMatch('\n<div>\n    \n            <p>included</p>\n        \n</div>');
     });
 
+    test('Esi:choose should support parenthesized expressions', async () => {
+        // given
+        const html = `
+<div>
+    <esi:choose>
+        <esi:when test="(1==1)">
+            <p>included</p>
+        </esi:when>
+    </esi:choose>
+</div>`;
+
+        // when
+        const result = await ProcessHtml(html);
+
+        // then
+        expect(result).toMatch('\n<div>\n    \n            <p>included</p>\n        \n</div>');
+    });
+
+    test('Esi:choose should not execute arbitrary code', async () => {
+        // given
+        const html = `
+<div>
+    <esi:choose>
+        <esi:when test="this.constructor.constructor('return true')()">
+            <p>included</p>
+        </esi:when>
+    </esi:choose>
+</div>`;
+
+        // when
+        const result = await ProcessHtml(html);
+
+        // then
+        expect(result).toMatch('\n<div>\n    <!--esi:choose without match-->\n</div>');
+    });
+
+    test('Esi:try should render attempt when present', async () => {
+        // given
+        const html = `
+<div>
+    <esi:try>
+        <esi:attempt>
+            <p>attempt</p>
+        </esi:attempt>
+        <esi:except>
+            <p>except</p>
+        </esi:except>
+    </esi:try>
+</div>`;
+
+        // when
+        const result = await ProcessHtml(html);
+
+        // then
+        expect(result).toMatch('\n<div>\n    \n            <p>attempt</p>\n        \n</div>');
+    });
+
+    test('Esi:try should render except when attempt is missing', async () => {
+        // given
+        const html = `
+<div>
+    <esi:try>
+        <esi:except>
+            <p>except</p>
+        </esi:except>
+    </esi:try>
+</div>`;
+
+        // when
+        const result = await ProcessHtml(html);
+
+        // then
+        expect(result).toMatch('\n<div>\n    \n            <p>except</p>\n        \n</div>');
+    });
+
+    test('Esi:try should render comment without attempt/except content', async () => {
+        // given
+        const html = '<esi:try></esi:try>';
+
+        // when
+        const result = await ProcessHtml(html);
+
+        // then
+        expect(result).toEqual('<!--esi:try without content-->');
+    });
+
+    test('XmlMode should support false', async () => {
+        // given
+        const html = '<div><img src="x" /></div>';
+
+        // when
+        const result = await ProcessHtml(html, { XmlMode: false });
+
+        // then
+        expect(result).toContain('<img src="x">');
+    });
+
 
   test('Esi:include should handle HTTP errors', async () => {
     // given

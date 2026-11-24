@@ -1,27 +1,37 @@
 import axios from 'axios';
-import mime from 'mime';
 import urljoin from 'url-join';
-import { DomElement } from 'domhandler';
-import { EsiFile, EsiFileExt, EsiProcessorOptions, HttpRequestOptions } from '../common/types';
+import { createCommentNode, createTextNode, DomElement, isTagNode } from '../common/dom';
+import { EsiFile, EsiProcessorOptions, HttpRequestOptions } from '../common/types';
 import { Process } from './process';
 import { ParseHtml } from './parseHtml';
 import { Request } from 'express';
-import { ParseJson } from './parseJson';
 
-const isValidUrlRegEx = /^https?:\/\/\w+(\.[-\w]+)*(:[0-9]+)?\/?(\/[.-\w]*)*(\?[.-\w]*\=)*$/;
+const isAbsoluteHttpUrl = (url: string): boolean => {
+    try {
+        const parsed = new URL(url);
+        return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch {
+        return false;
+    }
+};
 
 export const ProcessEsiInclude = async (esiElement: DomElement, options?: EsiProcessorOptions, req?: Request): Promise<DomElement[]> => {
-    let content = await _processUrl(esiElement.attribs.src, options);
-    if (!content && esiElement.attribs.alt) {
+    if (!isTagNode(esiElement)) {
+        return [createCommentNode('esi:include without content')];
+    }
+
+    const attribs = esiElement.attribs || {};
+    let content = await _processUrl(attribs.src, options, req);
+    if (!content && attribs.alt) {
         try {
-            content = await _processUrl(esiElement.attribs.alt, options);
+            content = await _processUrl(attribs.alt, options, req);
         } catch {
-            if (esiElement.attribs && !esiElement.attribs.onerror && esiElement.attribs.src) {
-                throw new Error('Couldn\'t get requested url: ' + esiElement.attribs.src);
-            } else if (esiElement.attribs && !esiElement.attribs.onerror) {
+            if (!attribs.onerror && attribs.src) {
+                throw new Error('Couldn\'t get requested url: ' + attribs.src);
+            } else if (!attribs.onerror) {
                 throw new Error('Couldn\'t get requested url.');
-            } else if (esiElement.attribs && esiElement.attribs.onerror && esiElement.attribs.onerror.toLowerCase() === 'continue') {
-                return [{ type: 'comment', data: 'esi:include continued on error' }];
+            } else if (attribs.onerror && attribs.onerror.toLowerCase() === 'continue') {
+                return [createCommentNode('esi:include continued on error')];
             }
         }
     }
@@ -29,43 +39,51 @@ export const ProcessEsiInclude = async (esiElement: DomElement, options?: EsiPro
     if (content && content.length > 0) {
         return content;
     }
-    return [{ type: 'comment', data: 'esi:include without content' }];
+    return [createCommentNode('esi:include without content')];
 };
 
-const _processUrl = async (url: string, options?: EsiProcessorOptions, req?: Request): Promise<DomElement[]> => {
+const _processUrl = async (url: string, options?: EsiProcessorOptions, req?: Request): Promise<DomElement[] | undefined> => {
     if (!url || url === '') {
         return undefined;
     }
-    if (options && options.BaseUrl && !isValidUrlRegEx.test(url)) {
+    if (options && options.BaseUrl && !isAbsoluteHttpUrl(url)) {
         url = urljoin(options.BaseUrl, url);
     }
-    const requestOptions = {};
+    const requestOptions: HttpRequestOptions = {};
     if (options && options.Headers) {
         requestOptions['headers'] = options.Headers;
     }
     try {
         const file: EsiFile = await _request(url, requestOptions);
-        switch (mime.getExtension(file.contentType)) {
-            case EsiFileExt.JSON:
-               return await Process(options, req, ...await ParseJson(file.data));
-            default:
-               return await Process(options, req, ...await ParseHtml(file.data));
+        if (_isJsonContentType(file.contentType)) {
+            const jsonText = typeof file.data === 'string' ? file.data : JSON.stringify(file.data);
+            return await Process(options, req, createTextNode(jsonText));
         }
+        return await Process(options, req, ...await ParseHtml(typeof file.data === 'string' ? file.data : String(file.data)));
     } catch (e) {
-        console.error('Esi-document:ProcessUrl: ' + e, 'Url:' + url);
+        console.error('Esi-document:ProcessUrl: ' + (e instanceof Error ? e.message : String(e)), 'Url:' + url);
         return undefined;
     }
 };
 
+const _isJsonContentType = (contentType: string): boolean => {
+    return contentType.split(';')[0].trim().toLowerCase() === 'application/json';
+};
+
 const _request = async (url: string, options: HttpRequestOptions): Promise<EsiFile> => {
-    return new Promise((resolve, reject) => {
-        axios.get(url, options).then(response => {
-          const contentType = response.headers['content-type'];
-            resolve({data: response.data, contentType: contentType || ''});
-        }).catch(error => {
-            if ((error.response && error.response.status > 299) || error) {
-              reject(error || error.response.statusText || error.response.status);
-            }
-        });
-    });
+    try {
+        const response = await axios.get(url, options);
+        const contentTypeHeader = response.headers['content-type'];
+        const contentType = typeof contentTypeHeader === 'string'
+            ? contentTypeHeader
+            : Array.isArray(contentTypeHeader) && contentTypeHeader.length > 0
+                ? contentTypeHeader[0]
+                : '';
+        return { data: response.data, contentType };
+    } catch (error) {
+        if (axios.isAxiosError(error) && error.response) {
+            throw new Error('Request failed with status ' + error.response.status);
+        }
+        throw error instanceof Error ? error : new Error(String(error));
+    }
 };
