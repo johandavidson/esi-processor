@@ -33,3 +33,9 @@ Use xmlMode (defaults to `true`). This option is passed to `htmlparser2`.
 
 ### Verbose
 Print extended log to the console.
+
+### ParallelProcessing
+Process sibling nodes in parallel (useful when multiple `esi:include` tags fetch remote content). Defaults to `false`.
+
+### ParallelProcessingMaxConcurrency
+Optional max concurrency for `ParallelProcessing`. Defaults to unlimited sibling concurrency when `ParallelProcessing` is enabled.

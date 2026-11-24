@@ -8,6 +8,8 @@ export interface EsiProcessorOptions {
     IgnoreEsiChooseTags?: boolean;
     XmlMode?: boolean;
     Verbose?: boolean;
+    ParallelProcessing?: boolean;
+    ParallelProcessingMaxConcurrency?: number;
 }
 
 export interface EsiFile {

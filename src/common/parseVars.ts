@@ -4,25 +4,28 @@ import { ESIVARIABLES } from './constants';
 
 const esivarregex = /\$\([^)]*\)/gm;
 const esivarskeyregex = /\{[^}]*\}/m;
+const esivarstart = '$(';
 
 export const ParseVars = (element: DomElement, request?: Request): DomElement => {
     const _resolveVar = (_var: string) => resolveVar(_var, request);
     if (isTagNode(element)) {
-        element.attribs = _parseAttribs(element.attribs, request);
+        element.attribs = _parseAttribs(element.attribs, request) || element.attribs;
     }
-    if (isDataNode(element)) {
+    if (isDataNode(element) && element.data.includes(esivarstart)) {
         element.data = element.data.replace(esivarregex, _resolveVar);
     }
     return element;
 };
 
-const _parseAttribs = (items?: Record<string, string>, req?: Request): Record<string, string> => {
+const _parseAttribs = (items?: Record<string, string>, req?: Request): Record<string, string> | undefined => {
     if (!items) {
-        return {};
+        return undefined;
     }
     const _resolveVar = (_var: string) => resolveVar(_var, req);
     for (const prop in items) {
-        items[prop] = items[prop].replace(esivarregex, _resolveVar);
+        if (items[prop].includes(esivarstart)) {
+            items[prop] = items[prop].replace(esivarregex, _resolveVar);
+        }
     }
     return items;
 };

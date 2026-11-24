@@ -69,6 +69,54 @@ describe('Test esi-document', () => {
         expect(result).toMatch('\n<div>\n    <p>included</p>\n</div>');
     });
 
+    test('ParallelProcessing should process sibling includes', async () => {
+        // given
+        const urlOne = 'http://www.parallel-1.se';
+        const urlTwo = 'http://www.parallel-2.se';
+        nock(urlOne)
+            .get('/')
+            .reply(200, '<p>included 1</p>');
+        nock(urlTwo)
+            .get('/')
+            .reply(200, '<p>included 2</p>');
+        const html = `
+<div>
+    <esi:include src="${urlOne}" />
+    <esi:include src="${urlTwo}" />
+</div>`;
+
+        // when
+        const result = await ProcessHtml(html, { ParallelProcessing: true });
+
+        // then
+        expect(result).toMatch('\n<div>\n    <p>included 1</p>\n    <p>included 2</p>\n</div>');
+        expect(requestSpy).toBeCalledTimes(2);
+    });
+
+    test('ParallelProcessingMaxConcurrency should support bounded parallel processing', async () => {
+        // given
+        const urlOne = 'http://www.parallel-max-1.se';
+        const urlTwo = 'http://www.parallel-max-2.se';
+        nock(urlOne)
+            .get('/')
+            .reply(200, '<p>included 1</p>');
+        nock(urlTwo)
+            .get('/')
+            .reply(200, '<p>included 2</p>');
+        const html = `
+<div>
+    <esi:include src="${urlOne}" />
+    <esi:include src="${urlTwo}" />
+</div>`;
+
+        // when
+        const result = await ProcessHtml(html, { ParallelProcessing: true, ParallelProcessingMaxConcurrency: 1 });
+
+        // then
+        expect(result).toMatch('\n<div>\n    <p>included 1</p>\n    <p>included 2</p>\n</div>');
+        expect(requestSpy).toBeCalledTimes(2);
+    });
+
 
     test('Esi:include with alt', async () => {
         // given
