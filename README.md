@@ -39,3 +39,7 @@ Process sibling nodes in parallel (useful when multiple `esi:include` tags fetch
 
 ### ParallelProcessingMaxConcurrency
 Optional max concurrency for `ParallelProcessing`. Defaults to unlimited sibling concurrency when `ParallelProcessing` is enabled.
+
+## Notes
+
+- `esi:vars` resolves variables recursively in descendant text nodes and attributes inside the `esi:vars` block.

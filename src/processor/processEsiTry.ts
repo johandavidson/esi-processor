@@ -1,4 +1,4 @@
-import { createCommentNode, DomElement, getChildNodes, isTagNode } from '../common/dom';
+import { createCommentNode, DomElement, getChildNodes, isDataNode, isTagNode } from '../common/dom';
 import { EsiProcessorOptions } from '../common/types';
 import { Request } from 'express';
 import { Process } from './process';
@@ -11,7 +11,7 @@ export const ProcessEsiTry = async (tryElement: DomElement, options?: EsiProcess
     if (attemptElement) {
         try {
             const attemptResult = await Process(options, req, ...getChildNodes(attemptElement));
-            if (attemptResult.length > 0) {
+            if (hasMeaningfulAttemptContent(attemptResult)) {
                 return attemptResult;
             }
         } catch {
@@ -24,4 +24,20 @@ export const ProcessEsiTry = async (tryElement: DomElement, options?: EsiProcess
     }
 
     return [createCommentNode('esi:try without content')];
+};
+
+const hasMeaningfulAttemptContent = (elements: DomElement[]): boolean => {
+    return elements.some((element) => isMeaningfulNode(element));
+};
+
+const isMeaningfulNode = (element: DomElement): boolean => {
+    if (isTagNode(element)) {
+        return true;
+    }
+
+    if (isDataNode(element)) {
+        return element.type === 'text' ? element.data.trim().length > 0 : false;
+    }
+
+    return getChildNodes(element).some((childElement) => isMeaningfulNode(childElement));
 };

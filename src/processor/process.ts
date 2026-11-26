@@ -10,11 +10,72 @@ import { ProcessEsiVars } from './processEsiVars';
 import { Request } from 'express';
 import { ParseVars } from '../common/parseVars';
 import { ProcessEsiTry } from './processEsiTry';
+import { AsyncLocalStorage } from 'async_hooks';
+
+interface ProcessContext {
+    maxConcurrency: number;
+    activeWorkers: number;
+    queue: Array<() => void>;
+}
+
+interface ProcessExecutionState {
+    context: ProcessContext;
+    insideWorker: boolean;
+}
+
+const processStateStorage = new AsyncLocalStorage<ProcessExecutionState>();
 
 export const Process = async (options?: EsiProcessorOptions, request?: Request, ...elements: DomElement[]): Promise<DomElement[]> => {
-    const maxConcurrency = resolveMaxConcurrency(elements.length, options);
-    if (maxConcurrency > 1 && elements.length > 1) {
-        return await processInParallel(elements, options, request, maxConcurrency);
+    const processState = processStateStorage.getStore();
+    if (!processState) {
+        const rootContext: ProcessContext = {
+            maxConcurrency: resolveMaxConcurrency(options),
+            activeWorkers: 0,
+            queue: []
+        };
+        return await processStateStorage.run({ context: rootContext, insideWorker: false }, async () => {
+            return await processElements(elements, options, request);
+        });
+    }
+
+    return await processElements(elements, options, request);
+};
+
+const resolveMaxConcurrency = (options?: EsiProcessorOptions): number => {
+    if (!options || !options.ParallelProcessing) {
+        return 1;
+    }
+    if (!options.ParallelProcessingMaxConcurrency || options.ParallelProcessingMaxConcurrency < 1) {
+        return Number.MAX_SAFE_INTEGER;
+    }
+    return Math.floor(options.ParallelProcessingMaxConcurrency);
+};
+
+const processElements = async (elements: DomElement[], options?: EsiProcessorOptions, request?: Request): Promise<DomElement[]> => {
+    const processState = processStateStorage.getStore();
+    const shouldParallelize = !!options && options.ParallelProcessing && elements.length > 1 &&
+        !!processState && !processState.insideWorker && processState.context.maxConcurrency > 1;
+
+    if (shouldParallelize && processState) {
+        const tasks = elements.map(async (currentElement) => {
+            return await runWithLimiter(processState.context, async () => {
+                return await processStateStorage.run({ context: processState.context, insideWorker: true }, async () => {
+                    if (options.Verbose) {
+                        console.log('Process: Processing ' + (isTagNode(currentElement) ? currentElement.name : currentElement.type));
+                    }
+                    return await _process(currentElement, options, request);
+                });
+            });
+        });
+
+        const taskResults = await Promise.allSettled(tasks);
+        const firstRejection = taskResults.find((taskResult) => taskResult.status === 'rejected') as PromiseRejectedResult | undefined;
+        if (firstRejection) {
+            throw firstRejection.reason;
+        }
+        return taskResults
+            .filter((taskResult): taskResult is PromiseFulfilledResult<DomElement[]> => taskResult.status === 'fulfilled')
+            .flatMap((taskResult) => taskResult.value);
     }
 
     const returnvalue: DomElement[] = [];
@@ -28,38 +89,35 @@ export const Process = async (options?: EsiProcessorOptions, request?: Request, 
     return returnvalue;
 };
 
-const resolveMaxConcurrency = (elementCount: number, options?: EsiProcessorOptions): number => {
-    if (!options || !options.ParallelProcessing) {
-        return 1;
+const runWithLimiter = async (context: ProcessContext, worker: () => Promise<DomElement[]>): Promise<DomElement[]> => {
+    await acquireWorkerSlot(context);
+    try {
+        return await worker();
+    } finally {
+        releaseWorkerSlot(context);
     }
-    if (!options.ParallelProcessingMaxConcurrency || options.ParallelProcessingMaxConcurrency < 1) {
-        return elementCount;
-    }
-    return Math.floor(options.ParallelProcessingMaxConcurrency);
 };
 
-const processInParallel = async (elements: DomElement[], options: EsiProcessorOptions, request: Request | undefined, maxConcurrency: number): Promise<DomElement[]> => {
-    const results: DomElement[][] = new Array(elements.length);
-    const workerCount = Math.min(maxConcurrency, elements.length);
-    let nextIndex = 0;
-
-    const workers: Promise<void>[] = [];
-    for (let workerIndex = 0; workerIndex < workerCount; workerIndex++) {
-        workers.push((async () => {
-            while (nextIndex < elements.length) {
-                const currentIndex = nextIndex;
-                nextIndex++;
-                const currentElement = elements[currentIndex];
-                if (options.Verbose) {
-                    console.log('Process: Processing ' + (isTagNode(currentElement) ? currentElement.name : currentElement.type));
-                }
-                results[currentIndex] = await _process(currentElement, options, request);
-            }
-        })());
+const acquireWorkerSlot = async (context: ProcessContext): Promise<void> => {
+    if (context.activeWorkers < context.maxConcurrency) {
+        context.activeWorkers++;
+        return;
     }
 
-    await Promise.all(workers);
-    return results.flat();
+    await new Promise<void>((resolve) => {
+        context.queue.push(() => {
+            context.activeWorkers++;
+            resolve();
+        });
+    });
+};
+
+const releaseWorkerSlot = (context: ProcessContext): void => {
+    context.activeWorkers--;
+    const nextWorker = context.queue.shift();
+    if (nextWorker) {
+        nextWorker();
+    }
 };
 
 const _process = async (element: DomElement, options?: EsiProcessorOptions, request?: Request): Promise<DomElement[]> => {

@@ -5,6 +5,5 @@ import { Request } from 'express';
 
 export const ProcessEsiRenderWithoutProcessing = async (rwpElement: DomElement, options?: EsiProcessorOptions, req?: Request): Promise<DomElement[]> => {
     const children = getChildNodes(rwpElement);
-    await Process(options, req, ...children);
-    return children;
+    return await Process(options, req, ...children);
 };

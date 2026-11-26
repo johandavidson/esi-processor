@@ -11,7 +11,7 @@ export const ParseHtml = async (html: string, options?: EsiProcessorOptions): Pr
             }
             resolve(dom);
         });
-        const parser = new Parser(dh, { xmlMode: options ? options.XmlMode !== false : true });
+        const parser = new Parser(dh, { xmlMode: options ? options.XmlMode !== false : true, decodeEntities: false });
         parser.write(html);
         parser.end();
     });

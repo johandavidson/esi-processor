@@ -1,7 +1,3 @@
-export enum EsiFileExt {
-  JSON = 'json'
-}
-
 export interface EsiProcessorOptions {
     Headers?: object;
     BaseUrl?: string;
@@ -13,7 +9,7 @@ export interface EsiProcessorOptions {
 }
 
 export interface EsiFile {
-  data: unknown;
+  data: string;
   contentType: string;
 }
 

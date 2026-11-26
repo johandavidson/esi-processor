@@ -56,10 +56,9 @@ const _processUrl = async (url: string, options?: EsiProcessorOptions, req?: Req
     try {
         const file: EsiFile = await _request(url, requestOptions);
         if (_isJsonContentType(file.contentType)) {
-            const jsonText = typeof file.data === 'string' ? file.data : JSON.stringify(file.data);
-            return await Process(options, req, createTextNode(jsonText));
+            return await Process(options, req, createTextNode(file.data));
         }
-        return await Process(options, req, ...await ParseHtml(typeof file.data === 'string' ? file.data : String(file.data)));
+        return await Process(options, req, ...await ParseHtml(file.data));
     } catch (e) {
         console.error('Esi-document:ProcessUrl: ' + (e instanceof Error ? e.message : String(e)), 'Url:' + url);
         return undefined;
@@ -72,14 +71,14 @@ const _isJsonContentType = (contentType: string): boolean => {
 
 const _request = async (url: string, options: HttpRequestOptions): Promise<EsiFile> => {
     try {
-        const response = await axios.get(url, options);
+        const response = await axios.get<string>(url, { ...options, responseType: 'text' });
         const contentTypeHeader = response.headers['content-type'];
         const contentType = typeof contentTypeHeader === 'string'
             ? contentTypeHeader
             : Array.isArray(contentTypeHeader) && contentTypeHeader.length > 0
                 ? contentTypeHeader[0]
                 : '';
-        return { data: response.data, contentType };
+        return { data: response.data || '', contentType };
     } catch (error) {
         if (axios.isAxiosError(error) && error.response) {
             throw new Error('Request failed with status ' + error.response.status);

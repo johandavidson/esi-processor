@@ -36,11 +36,8 @@ const resolveVar = (_var: string, req?: Request): string => {
     }
     _var = _var.replace(/[$()]/gm, '');
     const matches = _var.match(esivarskeyregex);
-    if (!matches) {
-        return '';
-    }
-    const varkey = matches[0].replace(/[{}]/gm, '');
-    const varname = _var.replace(esivarskeyregex, '');
+    const varkey = matches ? matches[0].replace(/[{}]/gm, '') : undefined;
+    const varname = matches ? _var.replace(esivarskeyregex, '') : _var;
     const resolver = ESIVARIABLES[varname];
     if (!resolver) {
         return '';

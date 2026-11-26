@@ -61,13 +61,93 @@ jobs:
             exit 1
           fi
 
-          HIGHEST_VERSION="$(printf '%s\n%s\n' "$LOCAL_VERSION" "$REMOTE_VERSION" | sort -V | tail -n1)"
-          if [ "$HIGHEST_VERSION" != "$LOCAL_VERSION" ]; then
-            echo "Version check failed: local version ($LOCAL_VERSION) must be greater than published version ($REMOTE_VERSION)."
-            exit 1
-          fi
+          node - "$LOCAL_VERSION" "$REMOTE_VERSION" <<'NODE'
+          const localVersion = process.argv[2];
+          const remoteVersion = process.argv[3];
+
+          const parseVersion = (value) => {
+            const match = value.match(/^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+([0-9A-Za-z.-]+))?$/);
+            if (!match) {
+              throw new Error(`Invalid semver format: ${value}`);
+            }
+            return {
+              major: Number(match[1]),
+              minor: Number(match[2]),
+              patch: Number(match[3]),
+              prerelease: match[4] ? match[4].split('.') : [],
+              build: match[5] || ''
+            };
+          };
+
+          const compareIdentifiers = (left, right) => {
+            const leftNumeric = /^\d+$/.test(left);
+            const rightNumeric = /^\d+$/.test(right);
+            if (leftNumeric && rightNumeric) {
+              return Number(left) - Number(right);
+            }
+            if (leftNumeric) {
+              return -1;
+            }
+            if (rightNumeric) {
+              return 1;
+            }
+            return left === right ? 0 : (left > right ? 1 : -1);
+          };
+
+          const compareVersions = (leftRaw, rightRaw) => {
+            const left = parseVersion(leftRaw);
+            const right = parseVersion(rightRaw);
+            if (left.major !== right.major) {
+              return left.major - right.major;
+            }
+            if (left.minor !== right.minor) {
+              return left.minor - right.minor;
+            }
+            if (left.patch !== right.patch) {
+              return left.patch - right.patch;
+            }
+            if (left.prerelease.length === 0 && right.prerelease.length === 0) {
+              return 0;
+            }
+            if (left.prerelease.length === 0) {
+              return 1;
+            }
+            if (right.prerelease.length === 0) {
+              return -1;
+            }
+            const maxLength = Math.max(left.prerelease.length, right.prerelease.length);
+            for (let index = 0; index < maxLength; index++) {
+              const leftIdentifier = left.prerelease[index];
+              const rightIdentifier = right.prerelease[index];
+              if (leftIdentifier === undefined) {
+                return -1;
+              }
+              if (rightIdentifier === undefined) {
+                return 1;
+              }
+              const compared = compareIdentifiers(leftIdentifier, rightIdentifier);
+              if (compared !== 0) {
+                return compared;
+              }
+            }
+            return 0;
+          };
+
+          if (compareVersions(localVersion, remoteVersion) <= 0) {
+            console.error(`Version check failed: local version (${localVersion}) must be greater than published version (${remoteVersion}).`);
+            process.exit(1);
+          }
+          NODE
 
       - name: Publish package to npm
-        run: npm publish --access public
+        shell: bash
+        run: |
+          set -euo pipefail
+          LOCAL_VERSION="$(node -p "require('./package.json').version")"
+          if [[ "$LOCAL_VERSION" == *-* ]]; then
+            npm publish --access public --tag next
+          else
+            npm publish --access public --tag latest
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

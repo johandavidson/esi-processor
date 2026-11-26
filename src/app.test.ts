@@ -107,16 +107,19 @@ describe('Test app', () => {
         }, req);
 
         // then
-        expect(processed).toEqual('\n<p>included</p><p>also included</p>\n{"test":true}\n<p>query included</p>\n<!--esi:choose-->\n<!--esi:comment-->\n<!--esi:remove-->\n\n<p>Hello, test!</p>\n\n\n  <img src="http://www.example.com/gif/hello.gif">\n');
+        expect(processed).toEqual('\n<p>included</p><p>also included</p>\n{"test": true}\n<p>query included</p>\n<!--esi:choose-->\n<!--esi:comment-->\n<!--esi:remove-->\n\n<p>Hello, test!</p>\n\n\n  <img src="http://www.example.com/gif/hello.gif">\n');
         expect(requestSpy).toBeCalledTimes(3);
         expect(requestSpy).toHaveBeenNthCalledWith(1, 'http://testinclude.com', {
-            'headers': { 'X-Custom-Header': 'x-custom-value' }
+            'headers': { 'X-Custom-Header': 'x-custom-value' },
+            'responseType': 'text'
         });
         expect(requestSpy).toHaveBeenNthCalledWith(2, 'http://testjsonurl.com/test.json', {
-            'headers': { 'X-Custom-Header': 'x-custom-value' }
+            'headers': { 'X-Custom-Header': 'x-custom-value' },
+            'responseType': 'text'
         });
         expect(requestSpy).toHaveBeenNthCalledWith(3, 'http://testquerystring.com?query=testparam', {
-            'headers': { 'X-Custom-Header': 'x-custom-value' }
+            'headers': { 'X-Custom-Header': 'x-custom-value' },
+            'responseType': 'text'
         });
     });
 
@@ -150,5 +153,170 @@ describe('Test app', () => {
 
         // then
         expect(processed).toEqual('');
+    });
+
+    test('Vars should resolve variables without key when supported', async () => {
+        // given
+        const req = httpMocks.createRequest({
+            method: 'GET',
+            headers: {
+                Host: 'www.test.se',
+                Referrer: 'https://example.com',
+                'User-Agent': 'esi-test-agent'
+            }
+        });
+        const html = '<esi:vars>$(HTTP_HOST)|$(HTTP_REFERER)|$(HTTP_USER_AGENT)</esi:vars>';
+
+        // when
+        const processed = await ESI(html, undefined, req);
+
+        // then
+        expect(processed).toEqual('www.test.se|https://example.com|esi-test-agent');
+    });
+
+    test('Vars should resolve nested variables inside esi:vars descendants', async () => {
+        // given
+        const req = httpMocks.createRequest({
+            method: 'GET',
+            headers: {
+                Cookie: 'name=test-cookie;'
+            }
+        });
+        const html = '<esi:vars><div data-name="$(HTTP_COOKIE{name})"><span>$(HTTP_COOKIE{name})</span></div></esi:vars>';
+
+        // when
+        const processed = await ESI(html, undefined, req);
+
+        // then
+        expect(processed).toContain('data-name="test-cookie"');
+        expect(processed).toContain('<span>test-cookie</span>');
+    });
+
+    test('Esi:choose should not allow query injection through variable substitution', async () => {
+        // given
+        const req = httpMocks.createRequest({
+            method: 'GET',
+            query: {
+                q: 'x\' || \'a\'==\'a'
+            }
+        });
+        const html = `
+<esi:choose>
+  <esi:when test="'$(QUERY_STRING{q})'=='zzz'">
+    <p>injected</p>
+  </esi:when>
+  <esi:otherwise>
+    <p>safe</p>
+  </esi:otherwise>
+</esi:choose>`;
+
+        // when
+        const processed = await ESI(html, undefined, req);
+
+        // then
+        expect(processed).toContain('<p>safe</p>');
+        expect(processed).not.toContain('<p>injected</p>');
+    });
+
+    test('Esi:choose should support unquoted variable comparisons', async () => {
+        // given
+        const req = httpMocks.createRequest({
+            method: 'GET',
+            headers: {
+                Cookie: 'name=bob;'
+            }
+        });
+        const html = `
+<esi:choose>
+  <esi:when test="$(HTTP_COOKIE{name})=='bob'">
+    <p>included</p>
+  </esi:when>
+  <esi:otherwise>
+    <p>fallback</p>
+  </esi:otherwise>
+</esi:choose>`;
+
+        // when
+        const processed = await ESI(html, undefined, req);
+
+        // then
+        expect(processed).toContain('<p>included</p>');
+        expect(processed).not.toContain('<p>fallback</p>');
+    });
+
+    test('Esi:choose should preserve numeric semantics for interpolated variables', async () => {
+        // given
+        const req = httpMocks.createRequest({
+            method: 'GET',
+            query: {
+                n: '10'
+            }
+        });
+        const html = `
+<esi:choose>
+  <esi:when test="$(QUERY_STRING{n})===10">
+    <p>included</p>
+  </esi:when>
+  <esi:otherwise>
+    <p>fallback</p>
+  </esi:otherwise>
+</esi:choose>`;
+
+        // when
+        const processed = await ESI(html, undefined, req);
+
+        // then
+        expect(processed).toContain('<p>included</p>');
+        expect(processed).not.toContain('<p>fallback</p>');
+    });
+
+    test('Esi:choose should preserve boolean semantics for interpolated variables', async () => {
+        // given
+        const req = httpMocks.createRequest({
+            method: 'GET',
+            query: {
+                flag: 'true'
+            }
+        });
+        const html = `
+<esi:choose>
+  <esi:when test="$(QUERY_STRING{flag})==true">
+    <p>included</p>
+  </esi:when>
+  <esi:otherwise>
+    <p>fallback</p>
+  </esi:otherwise>
+</esi:choose>`;
+
+        // when
+        const processed = await ESI(html, undefined, req);
+
+        // then
+        expect(processed).toContain('<p>included</p>');
+        expect(processed).not.toContain('<p>fallback</p>');
+    });
+
+    test('Esi:choose should not treat missing interpolated values as zero', async () => {
+        // given
+        const req = httpMocks.createRequest({
+            method: 'GET',
+            query: {}
+        });
+        const html = `
+<esi:choose>
+  <esi:when test="$(QUERY_STRING{missing})===0">
+    <p>included</p>
+  </esi:when>
+  <esi:otherwise>
+    <p>fallback</p>
+  </esi:otherwise>
+</esi:choose>`;
+
+        // when
+        const processed = await ESI(html, undefined, req);
+
+        // then
+        expect(processed).toContain('<p>fallback</p>');
+        expect(processed).not.toContain('<p>included</p>');
     });
 });
