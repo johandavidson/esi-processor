@@ -43,3 +43,6 @@ Optional max concurrency for `ParallelProcessing`. Defaults to unlimited sibling
 ## Notes
 
 - `esi:vars` resolves variables recursively in descendant text nodes and attributes inside the `esi:vars` block.
+- Outside `esi:vars`, variables are only resolved in the attributes of ESI tags (e.g. `esi:include src`).
+- ESI tags nested inside `esi:vars` are processed after variable substitution.
+- Supported variables are `HTTP_ACCEPT_LANGUAGE`, `HTTP_COOKIE`, `HTTP_HOST`, `HTTP_REFERER`, `HTTP_USER_AGENT` and `QUERY_STRING`. Any other `$(...)` text, such as jQuery's `$(document)`, is left untouched.
