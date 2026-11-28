@@ -10,5 +10,6 @@ coverage
 jenkins
 src
 *.config.js
+jest.setup.js
 tslint.json
 tsconfig.json

@@ -1,6 +1,7 @@
 module.exports = {
   testEnvironment: 'node',
   collectCoverage: false,
+  setupFiles: ["<rootDir>/jest.setup.js"],
   roots: [
     "<rootDir>/src"
   ],
