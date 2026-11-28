@@ -23,7 +23,7 @@ const findMatchingChooseChild = (children: DomElement[], req?: Request): DomElem
 };
 
 const resolveWhenContent = (whenElement: DomElement, req?: Request): DomElement[] | undefined => {
-    if (!isTagNode(whenElement)) {
+    if (!isTagNode(whenElement) || whenElement.name !== 'esi:when') {
         return undefined;
     }
 

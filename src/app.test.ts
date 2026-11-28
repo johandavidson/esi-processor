@@ -452,4 +452,22 @@ describe('Test app', () => {
         // then
         expect(processed).toEqual('<p>$(HTTP_HOST)</p><p>$(HTTP_HOST)</p>');
     });
+
+    test('Esi:choose should only match esi:when children', async () => {
+        // given
+        const html = `
+<esi:choose>
+  <div test="1==1"><p>not a when</p></div>
+  <esi:when test="1==1">
+    <p>included</p>
+  </esi:when>
+</esi:choose>`;
+
+        // when
+        const processed = await ESI(html);
+
+        // then
+        expect(processed).toContain('<p>included</p>');
+        expect(processed).not.toContain('not a when');
+    });
 });
