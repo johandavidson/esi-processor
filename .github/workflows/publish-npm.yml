@@ -1,0 +1,153 @@
+name: Publish to npm
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test -- --runInBand
+
+      - name: Build package
+        run: npm run build
+
+      - name: Validate package version is bumped
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PACKAGE_NAME="$(node -p "require('./package.json').name")"
+          LOCAL_VERSION="$(node -p "require('./package.json').version")"
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          REMOTE_VERSION="$(npm view "$PACKAGE_NAME" version 2>/dev/null || true)"
+
+          echo "Package: $PACKAGE_NAME"
+          echo "Tag version: $TAG_VERSION"
+          echo "Local version: $LOCAL_VERSION"
+          echo "Published version: ${REMOTE_VERSION:-<none>}"
+
+          if [ "$TAG_VERSION" != "$LOCAL_VERSION" ]; then
+            echo "Version check failed: git tag version ($TAG_VERSION) must match package.json version ($LOCAL_VERSION)."
+            exit 1
+          fi
+
+          if [ -z "$REMOTE_VERSION" ]; then
+            echo "No published version found. Proceeding with first publish."
+            exit 0
+          fi
+
+          if [ "$LOCAL_VERSION" = "$REMOTE_VERSION" ]; then
+            echo "Version check failed: package.json version must be bumped before publishing."
+            exit 1
+          fi
+
+          node - "$LOCAL_VERSION" "$REMOTE_VERSION" <<'NODE'
+          const localVersion = process.argv[2];
+          const remoteVersion = process.argv[3];
+
+          const parseVersion = (value) => {
+            const match = value.match(/^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+([0-9A-Za-z.-]+))?$/);
+            if (!match) {
+              throw new Error(`Invalid semver format: ${value}`);
+            }
+            return {
+              major: Number(match[1]),
+              minor: Number(match[2]),
+              patch: Number(match[3]),
+              prerelease: match[4] ? match[4].split('.') : [],
+              build: match[5] || ''
+            };
+          };
+
+          const compareIdentifiers = (left, right) => {
+            const leftNumeric = /^\d+$/.test(left);
+            const rightNumeric = /^\d+$/.test(right);
+            if (leftNumeric && rightNumeric) {
+              return Number(left) - Number(right);
+            }
+            if (leftNumeric) {
+              return -1;
+            }
+            if (rightNumeric) {
+              return 1;
+            }
+            return left === right ? 0 : (left > right ? 1 : -1);
+          };
+
+          const compareVersions = (leftRaw, rightRaw) => {
+            const left = parseVersion(leftRaw);
+            const right = parseVersion(rightRaw);
+            if (left.major !== right.major) {
+              return left.major - right.major;
+            }
+            if (left.minor !== right.minor) {
+              return left.minor - right.minor;
+            }
+            if (left.patch !== right.patch) {
+              return left.patch - right.patch;
+            }
+            if (left.prerelease.length === 0 && right.prerelease.length === 0) {
+              return 0;
+            }
+            if (left.prerelease.length === 0) {
+              return 1;
+            }
+            if (right.prerelease.length === 0) {
+              return -1;
+            }
+            const maxLength = Math.max(left.prerelease.length, right.prerelease.length);
+            for (let index = 0; index < maxLength; index++) {
+              const leftIdentifier = left.prerelease[index];
+              const rightIdentifier = right.prerelease[index];
+              if (leftIdentifier === undefined) {
+                return -1;
+              }
+              if (rightIdentifier === undefined) {
+                return 1;
+              }
+              const compared = compareIdentifiers(leftIdentifier, rightIdentifier);
+              if (compared !== 0) {
+                return compared;
+              }
+            }
+            return 0;
+          };
+
+          if (compareVersions(localVersion, remoteVersion) <= 0) {
+            console.error(`Version check failed: local version (${localVersion}) must be greater than published version (${remoteVersion}).`);
+            process.exit(1);
+          }
+          NODE
+
+      - name: Publish package to npm
+        shell: bash
+        run: |
+          set -euo pipefail
+          LOCAL_VERSION="$(node -p "require('./package.json').version")"
+          if [[ "$LOCAL_VERSION" == *-* ]]; then
+            npm publish --access public --tag next
+          else
+            npm publish --access public --tag latest
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

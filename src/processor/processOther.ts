@@ -1,11 +1,12 @@
-import { DomElement } from 'domhandler';
+import { DomElement, getChildNodes, setChildNodes } from '../common/dom';
 import { Process } from './process';
 import { EsiProcessorOptions } from '../common/types';
 import { Request } from 'express';
 
 export const ProcessOther = async (element: DomElement, options?: EsiProcessorOptions, req?: Request): Promise<DomElement[]> => {
-    if (element.children && element.children.length > 0) {
-        element.children = await Process(options, req, ...element.children);
+    const children = getChildNodes(element);
+    if (children.length > 0) {
+        setChildNodes(element, await Process(options, req, ...children));
     }
     return [element];
 };
