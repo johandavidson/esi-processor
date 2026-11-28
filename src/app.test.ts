@@ -470,4 +470,35 @@ describe('Test app', () => {
         expect(processed).toContain('<p>included</p>');
         expect(processed).not.toContain('not a when');
     });
+
+    test('Vars without a key should return the whole value', async () => {
+        // given
+        const req = httpMocks.createRequest({
+            method: 'GET',
+            url: '/page?a=1&b=2',
+            headers: {
+                'Accept-Language': 'sv,en;q=0.8',
+                Cookie: 'a=1; b=2'
+            }
+        });
+        const html = '<esi:vars>$(HTTP_ACCEPT_LANGUAGE)|$(HTTP_COOKIE)|$(QUERY_STRING)</esi:vars>';
+
+        // when
+        const processed = await ESI(html, undefined, req);
+
+        // then
+        expect(processed).toEqual('sv,en;q=0.8|a=1; b=2|a=1&b=2');
+    });
+
+    test('Vars without a key should be empty when the value is missing', async () => {
+        // given
+        const req = httpMocks.createRequest({ method: 'GET', url: '/page' });
+        const html = '<esi:vars>$(HTTP_ACCEPT_LANGUAGE)|$(HTTP_COOKIE)|$(QUERY_STRING)</esi:vars>';
+
+        // when
+        const processed = await ESI(html, undefined, req);
+
+        // then
+        expect(processed).toEqual('||');
+    });
 });

@@ -6,21 +6,30 @@ const escapeRegExp = (value: string): string => {
 
 export const ESIVARIABLES = {
     HTTP_ACCEPT_LANGUAGE: (req: Request, language?: string) => {
+        const header = req.header('accept-language') || '';
         if (!language) {
-            return false;
+            return header;
         }
-        return (req.header('accept-language') || '').includes(language);
+        return header.includes(language);
     },
     HTTP_COOKIE: (req: Request, cookie?: string) => {
+        const header = req.header('cookie') || '';
         if (!cookie) {
-            return '';
+            return header;
         }
         const safeCookieName = escapeRegExp(cookie);
-        return (req.header('cookie') || '')
+        return header
             .replace(new RegExp(`(?:(?:^|.*;\\s*)${safeCookieName}\\s*\\=\\s*([^;]*).*$)|^.*$`), '$1');
     },
     HTTP_HOST: (req: Request) => req.header('host') || '',
     HTTP_REFERER: (req: Request) => req.header('referrer') || '',
     HTTP_USER_AGENT: (req: Request) => req.header('user-agent') || '',
-    QUERY_STRING: (req: Request, query?: string) => query ? req.query[query] : ''
+    QUERY_STRING: (req: Request, query?: string) => {
+        if (query) {
+            return req.query[query];
+        }
+        const url = req.originalUrl || req.url || '';
+        const queryStart = url.indexOf('?');
+        return queryStart === -1 ? '' : url.slice(queryStart + 1);
+    }
 };
