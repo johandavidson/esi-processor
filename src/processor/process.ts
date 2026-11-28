@@ -143,7 +143,7 @@ const _process = async (element: DomElement, options?: EsiProcessorOptions, requ
         case 'esi:try':
             return await ProcessEsiTry(element, options, request);
         case 'esi:vars':
-            return ProcessEsiVars(element, options, request);
+            return await ProcessEsiVars(element, options, request);
         default:
             return await ProcessOther(element, options, request);
     }

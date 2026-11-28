@@ -12,6 +12,7 @@ describe('Test app', () => {
     });
 
     afterEach(() => {
+        nock.cleanAll();
         jest.restoreAllMocks();
         jest.resetAllMocks();
         jest.resetModules();
@@ -383,5 +384,72 @@ describe('Test app', () => {
         // then
         expect(processed).toContain('$(constructor)');
         expect(processed).toContain('<p>included</p>');
+    });
+
+    test('Esi tags nested in esi:vars should be processed', async () => {
+        // given
+        const url = 'http://varsinclude.com';
+        const n = nock(url)
+            .get('/www.test.se')
+            .reply(200, '<p>included</p>');
+        const req = httpMocks.createRequest({
+            method: 'GET',
+            headers: {
+                Host: 'www.test.se',
+                Cookie: 'name=bob;'
+            }
+        });
+        const html = `<esi:vars><esi:include src="${url}/$(HTTP_HOST)"/>`
+            + `<esi:choose><esi:when test="$(HTTP_COOKIE{name})=='bob'"><span>$(HTTP_HOST)</span></esi:when></esi:choose>`
+            + '<esi:remove><p>removed</p></esi:remove></esi:vars>';
+
+        // when
+        const processed = await ESI(html, undefined, req);
+
+        // then
+        expect(n.isDone()).toBeTruthy();
+        expect(processed).toEqual('<p>included</p><span>www.test.se</span><!--esi:remove-->');
+    });
+
+    test('Esi tag attributes inside esi:vars should only be substituted once', async () => {
+        // given
+        const url = 'http://varsonce.com';
+        const n = nock(url)
+            .get('/')
+            .query({ v: '$(HTTP_HOST)' })
+            .reply(200, '<p>included</p>');
+        const req = httpMocks.createRequest({
+            method: 'GET',
+            headers: {
+                Host: 'www.test.se',
+                Cookie: 'v=$(HTTP_HOST);'
+            }
+        });
+        const html = `<esi:vars><esi:include src="${url}/?v=$(HTTP_COOKIE{v})"/></esi:vars>`;
+
+        // when
+        const processed = await ESI(html, undefined, req);
+
+        // then
+        expect(n.isDone()).toBeTruthy();
+        expect(processed).toEqual('<p>included</p>');
+    });
+
+    test('Nested esi:vars should only substitute once', async () => {
+        // given
+        const req = httpMocks.createRequest({
+            method: 'GET',
+            headers: {
+                Host: 'www.test.se',
+                Cookie: 'c=$(HTTP_HOST);'
+            }
+        });
+        const html = '<esi:vars><p>$(HTTP_COOKIE{c})</p><esi:vars><p>$(HTTP_COOKIE{c})</p></esi:vars></esi:vars>';
+
+        // when
+        const processed = await ESI(html, undefined, req);
+
+        // then
+        expect(processed).toEqual('<p>$(HTTP_HOST)</p><p>$(HTTP_HOST)</p>');
     });
 });
