@@ -2,7 +2,7 @@ import { createCommentNode, DomElement, getChildNodes, isTagNode } from '../comm
 import { Process } from './process';
 import { EsiProcessorOptions } from '../common/types';
 import { Request } from 'express';
-import { ESIVARIABLES } from '../common/constants';
+import { substituteVariables } from '../common/parseVars';
 
 export const ProcessEsiChoose = async (chooseElement: DomElement, options?: EsiProcessorOptions, req?: Request): Promise<DomElement[]> => {
     if (options && options.IgnoreEsiChooseTags) {
@@ -213,33 +213,10 @@ const hasBalancedOuterParentheses = (expression: string): boolean => {
     return depth === 0;
 };
 
-const esivarregex = /\$\([^)]*\)/gm;
-const esivarskeyregex = /\{[^}]*\}/m;
-
 const resolveInterpolatedVariables = (value: string, req?: Request): string => {
-    if (!req || value.indexOf('$(') === -1) {
+    if (!req) {
         return value;
     }
-    return value.replace(esivarregex, (token) => resolveTokenValue(token, req));
-};
-
-const resolveTokenValue = (token: string, req: Request): string => {
-    const normalizedToken = token.replace(/[$()]/gm, '');
-    const matches = normalizedToken.match(esivarskeyregex);
-    const key = matches ? matches[0].replace(/[{}]/gm, '') : undefined;
-    const varname = matches ? normalizedToken.replace(esivarskeyregex, '') : normalizedToken;
-    const resolver = ESIVARIABLES[varname];
-    if (!resolver) {
-        return '';
-    }
-    try {
-        const value = resolver(req, key || undefined);
-        if (value === undefined || value === null) {
-            return '';
-        }
-        return String(value);
-    } catch (error) {
-        console.error('ESI choose variable resolution failed: ' + (error instanceof Error ? error.message : String(error)));
-        return '';
-    }
+    // Unknown tokens become '' so a test expression never compares against literal $(...) text.
+    return substituteVariables(value, req, true);
 };

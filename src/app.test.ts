@@ -319,4 +319,69 @@ describe('Test app', () => {
         expect(processed).toContain('<p>fallback</p>');
         expect(processed).not.toContain('<p>included</p>');
     });
+
+    test('Vars should not be substituted outside esi:vars', async () => {
+        // given
+        const req = httpMocks.createRequest({
+            method: 'GET',
+            headers: {
+                Host: 'www.test.se'
+            }
+        });
+        const html = '<p data-host="$(HTTP_HOST)">$(HTTP_HOST)</p>';
+
+        // when
+        const processed = await ESI(html, undefined, req);
+
+        // then
+        expect(processed).toEqual(html);
+    });
+
+    test('Unknown variables should be left untouched', async () => {
+        // given
+        const req = httpMocks.createRequest({
+            method: 'GET',
+            headers: {
+                Host: 'www.test.se'
+            }
+        });
+        const script = '<script>$(document).ready(function () { $(".x").hide(); });</script>';
+        const html = `${script}<a onclick="$(this).hide()">x</a><p>Price $(5)</p><esi:vars>${script}$(HTTP_HOST)</esi:vars>`;
+
+        // when
+        const processed = await ESI(html, undefined, req);
+
+        // then
+        expect(processed).toEqual(`${script}<a onclick="$(this).hide()">x</a><p>Price $(5)</p>${script}www.test.se`);
+    });
+
+    test('Unknown variables should be left untouched without a request', async () => {
+        // given
+        const html = '<script>$(document).ready(function () {});</script>';
+
+        // when
+        const processed = await ESI(html);
+
+        // then
+        expect(processed).toEqual(html);
+    });
+
+    test('Object prototype keys should not resolve as variables', async () => {
+        // given
+        const req = httpMocks.createRequest({ method: 'GET' });
+        const html = `
+<esi:choose>
+  <esi:when test="'$(constructor)'=='$(toString)'">
+    <p>included</p>
+  </esi:when>
+</esi:choose>
+<esi:vars>$(constructor)</esi:vars>`;
+
+        // when
+        const processed = await ESI(html, undefined, req);
+
+        // then
+        expect(processed).toContain('$(constructor)');
+        expect(processed).toContain('<p>included</p>');
+    });
 });

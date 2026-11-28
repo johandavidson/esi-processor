@@ -8,7 +8,7 @@ import { ProcessEsiComment } from './processEsiComment';
 import { EsiProcessorOptions } from '../common/types';
 import { ProcessEsiVars } from './processEsiVars';
 import { Request } from 'express';
-import { ParseVars } from '../common/parseVars';
+import { isEsiTag, ParseVars } from '../common/parseVars';
 import { ProcessEsiTry } from './processEsiTry';
 import { AsyncLocalStorage } from 'async_hooks';
 
@@ -121,7 +121,10 @@ const releaseWorkerSlot = (context: ProcessContext): void => {
 };
 
 const _process = async (element: DomElement, options?: EsiProcessorOptions, request?: Request): Promise<DomElement[]> => {
-    element = ParseVars(element, request);
+    // Outside esi:vars, variables are only substituted in ESI tag attributes (e.g. esi:include src).
+    if (isEsiTag(element)) {
+        element = ParseVars(element, request);
+    }
     if (!isTagNode(element)) {
         return await ProcessOther(element, options, request);
     }
